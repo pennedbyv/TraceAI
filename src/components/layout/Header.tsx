@@ -7,6 +7,7 @@ interface HeaderProps {
   syncStatus: 'synced' | 'saving' | 'error';
   lastSavedText?: string;
   onOpenSearchModal: () => void;
+  searchInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,6 +16,7 @@ export const Header: React.FC<HeaderProps> = ({
   syncStatus,
   lastSavedText = 'All notes synced to private vault',
   onOpenSearchModal,
+  searchInputRef,
 }) => {
   const syncLabel = syncStatus === 'saving'
     ? 'Persisting to Realtime Database...'
@@ -45,6 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="relative min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#827379]" />
           <input
+            ref={searchInputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
@@ -53,7 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="w-[min(36vw,15rem)] rounded-xl border border-transparent bg-[#eeece9] py-2.5 pl-10 pr-12 text-sm text-[#1b1c1a] placeholder:text-[#827379] transition-all focus:border-[#d4c2c9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#854c6c] max-sm:w-[min(48vw,12rem)]"
           />
           <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-[#504349] bg-white px-1.5 py-0.5 rounded-md border border-[#d4c2c9]/40 shadow-2xs font-mono">
-            ⌘K
+          <b>Ctrl+S</b>
           </kbd>
         </div>
 

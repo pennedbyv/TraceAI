@@ -108,7 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {!collapsed && <span className="text-lg">On This Day</span>}
               </div>
               {!collapsed && <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#cbe8ef] text-[#021f24] font-medium">
-                3 yrs
+                1 week
               </span>}
             </button>
 
@@ -125,7 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <Search className="w-4 h-4 text-[#504349]" />
                 {!collapsed && <span className="text-lg">Search</span>}
               </div>
-              {!collapsed && <span className="text-[10px] text-[#827379] font-mono">⌘K</span>}
+              {!collapsed && <span className="text-[10px] text-[#827379] font-mono"><b>Ctrl+S</b></span>}
             </button>
 
             <button

@@ -18,6 +18,7 @@ import {
   BookOpen,
   MessageSquare,
   MapPin,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface NotebookEditorProps {
@@ -25,9 +26,10 @@ interface NotebookEditorProps {
   user: UserProfile;
   onSaveEntry: (updated: JournalEntry) => void;
   onDeleteEntry?: (id: string) => void;
+  onBack?: () => void;
 }
 
-export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onSaveEntry }) => {
+export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onSaveEntry, onBack }) => {
   const [title, setTitle] = useState(entry.title);
   const [content, setContent] = useState(entry.content);
   const [slashQuery, setSlashQuery] = useState('');
@@ -361,6 +363,17 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
 
   return (
     <div className={`relative max-w-[1320px] mx-auto py-10 px-8 sm:px-12 transition-all duration-200 ${isFocusMode ? 'max-w-4xl' : ''}`}>
+
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="mb-5 inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#504349] transition-colors hover:bg-white hover:text-[#854c6c] cursor-pointer"
+          type="button"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to calendar
+        </button>
+      )}
 
       {/* Save Banner */}
       {saveBanner && (

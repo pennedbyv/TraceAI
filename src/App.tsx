@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { UserProfile, JournalEntry, ActiveNavSection } from './types';
 import { subscribeToAuthChanges, signOutUser } from './lib/firebase/client';
 import {
@@ -29,6 +29,8 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [syncStatus, setSyncStatus] = useState<'synced' | 'saving' | 'error'>('synced');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [returnSection, setReturnSection] = useState<ActiveNavSection | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Listen to Authentication lifecycle
   useEffect(() => {
@@ -37,6 +39,19 @@ export default function App() {
       setAuthLoading(false);
     });
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const handleSearchShortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        setActiveSection('search');
+        requestAnimationFrame(() => searchInputRef.current?.focus());
+      }
+    };
+
+    window.addEventListener('keydown', handleSearchShortcut);
+    return () => window.removeEventListener('keydown', handleSearchShortcut);
   }, []);
 
   // When user is authenticated, load their isolated Realtime Database entries
@@ -228,7 +243,10 @@ export default function App() {
       <Sidebar
         user={currentUser}
         activeSection={activeSection}
-        onSelectSection={(sec) => setActiveSection(sec)}
+        onSelectSection={(sec) => {
+          setActiveSection(sec);
+          setReturnSection(null);
+        }}
         onNewEntry={handleNewEntry}
         onSignOut={handleSignOut}
         workEntriesCount={workEntriesCount}
@@ -248,6 +266,7 @@ export default function App() {
           }}
           syncStatus={syncStatus}
           onOpenSearchModal={() => setActiveSection('search')}
+          searchInputRef={searchInputRef}
         />
 
         <div className="flex-1 pb-16">
@@ -258,6 +277,10 @@ export default function App() {
               user={currentUser}
               onSaveEntry={handleSaveEntry}
               onDeleteEntry={handleDeleteEntry}
+              onBack={returnSection === 'calendar' ? () => {
+                setActiveSection('calendar');
+                setReturnSection(null);
+              } : undefined}
             />
           )}
 
@@ -272,6 +295,7 @@ export default function App() {
               onSelectEntry={(entry) => {
                 setActiveEntry(entry);
                 setActiveSection('write');
+                setReturnSection(null);
               }}
               onDeleteEntry={handleDeleteEntry}
               onNewEntry={handleNewEntry}
@@ -285,6 +309,7 @@ export default function App() {
               onSelectEntry={(entry) => {
                 setActiveEntry(entry);
                 setActiveSection('write');
+                setReturnSection('calendar');
               }}
             />
           )}

@@ -65,11 +65,19 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ entries, onSelectEntry }
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const [selected, setSelected] = useState<{ location: string; entries: JournalEntry[] } | null>(null);
+  const [activePinType, setActivePinType] = useState<JournalEntry['pinType'] | 'all'>('all');
   const [leafletReady, setLeafletReady] = useState(!!(window as any).L);
 
   useLeaflet(() => setLeafletReady(true));
 
   const groups = groupByLocation(entries);
+  const visibleGroups = activePinType === 'all'
+    ? groups
+    : groups.filter((group) => (group.pinType || 'default') === activePinType);
+
+  useEffect(() => {
+    setSelected(null);
+  }, [activePinType]);
 
   // Init map once Leaflet is ready
   useEffect(() => {
@@ -119,14 +127,14 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ entries, onSelectEntry }
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    if (groups.length === 0) {
+    if (visibleGroups.length === 0) {
       map.setView([20.5937, 78.9629], 5);
       return;
     }
 
     const bounds: [number, number][] = [];
 
-    groups.forEach((g) => {
+    visibleGroups.forEach((g) => {
       bounds.push([g.coords.lat, g.coords.lng]);
 
       const meta = PIN_META[g.pinType || 'default'] || PIN_META.default;
@@ -161,7 +169,7 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ entries, onSelectEntry }
     } else {
       map.fitBounds(bounds, { padding: [60, 60] });
     }
-  }, [leafletReady, JSON.stringify(groups.map((g) => ({ l: g.location, n: g.entries.length })))]);
+  }, [leafletReady, activePinType, JSON.stringify(visibleGroups.map((g) => ({ l: g.location, n: g.entries.length })))]);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f8f7f4] relative" style={{ zIndex: 0, isolation: 'isolate' }}>
@@ -169,7 +177,7 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ entries, onSelectEntry }
       <div className="px-8 pt-8 pb-5">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#f5f3f0] text-[#504349] text-[10px] font-semibold uppercase tracking-wider mb-3 border border-[#d4c2c9]/40">
           <Compass className="w-3.5 h-3.5 text-[#854c6c]" />
-          Spatial Chronicle • {groups.length} Location{groups.length !== 1 ? 's' : ''} Recorded
+          Spatial Chronicle • {visibleGroups.length} Location{visibleGroups.length !== 1 ? 's' : ''} Shown
         </div>
         <h2 className="font-serif text-3xl sm:text-4xl text-[#1b1c1a] tracking-tight">
           Places &amp; Geographic Footprints
@@ -178,12 +186,26 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ entries, onSelectEntry }
           A contemplative map of where reflections unfolded — tracing the intersection of topography, personal entries, and ambient states.
         </p>
         {/* Pin type legend */}
-        <div className="flex flex-wrap gap-2 mt-3">
+        <div className="flex flex-wrap gap-2 mt-3" aria-label="Filter map markers">
+          <button
+            onClick={() => setActivePinType('all')}
+            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] transition-colors cursor-pointer ${activePinType === 'all' ? 'border-[#854c6c] bg-[#854c6c] text-white' : 'border-[#e8e4e1] bg-white text-[#504349] hover:border-[#d4c2c9]'}`}
+            type="button"
+            aria-pressed={activePinType === 'all'}
+          >
+            All markers
+          </button>
           {Object.entries(PIN_META).map(([type, meta]) => (
-            <span key={type} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-[#e8e4e1] text-[11px] text-[#504349]">
+            <button
+              key={type}
+              onClick={() => setActivePinType(type as JournalEntry['pinType'])}
+              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] transition-colors cursor-pointer ${activePinType === type ? 'border-[#854c6c] bg-[#854c6c] text-white' : 'border-[#e8e4e1] bg-white text-[#504349] hover:border-[#d4c2c9]'}`}
+              type="button"
+              aria-pressed={activePinType === type}
+            >
               <span>{meta.emoji}</span>
               <span className="capitalize">{type}</span>
-            </span>
+            </button>
           ))}
         </div>
       </div>
