@@ -11,7 +11,6 @@ import {
   FileText,
   Quote,
   HelpCircle,
-  MessageSquare,
   Plus,
   X,
   Copy,
@@ -83,6 +82,104 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
 
     return () => clearTimeout(timer);
   }, [title, content, category, tags, marginNotes]);
+
+  const slashCommands = [
+    {
+      command: '/gem' as const,
+      aliases: ['gem'],
+      icon: <Sparkles className="w-4 h-4" />,
+      iconBg: 'bg-[#f9b2d7] text-[#784160]',
+      label: '/gem',
+      badge: 'Companion',
+      description: 'Your contextual thinking partner',
+    },
+    {
+      command: '/ask' as const,
+      aliases: ['ask'],
+      icon: <HelpCircle className="w-4 h-4" />,
+      iconBg: 'bg-[#efeeeb] text-[#504349]',
+      label: '/ask',
+      badge: null,
+      description: 'Inquire past thoughts',
+    },
+    {
+      command: '/summarise' as const,
+      aliases: ['sum', 'summarise'],
+      icon: <FileText className="w-4 h-4" />,
+      iconBg: 'bg-[#efeeeb] text-[#504349]',
+      label: '/summarise',
+      badge: null,
+      description: 'Condense entry into core insights',
+    },
+    {
+      command: '/prompt' as const,
+      aliases: ['prm', 'prompt'],
+      icon: <BookOpen className="w-4 h-4" />,
+      iconBg: 'bg-[#efeeeb] text-[#504349]',
+      label: '/prompt',
+      badge: null,
+      description: 'Unblock thinking with questions',
+    },
+    {
+      command: '/quotes' as const,
+      aliases: ['quo', 'quotes'],
+      icon: <Quote className="w-4 h-4" />,
+      iconBg: 'bg-[#efeeeb] text-[#504349]',
+      label: '/quotes',
+      badge: null,
+      description: 'Find resonant citations & philosophy',
+    },
+  ];
+
+  const openMenu = () => {
+    if (contentRef.current) {
+      const rect = contentRef.current.getBoundingClientRect();
+      setMenuPos({ top: rect.top + window.scrollY + 40, left: rect.left + window.scrollX });
+    }
+    setShowSlashMenu(true);
+  };
+
+  const handleContentChange = (nextContent: string) => {
+    setContent(nextContent);
+    const currentToken = nextContent.split(/\s/).pop() || '';
+    if (currentToken.startsWith('/') && currentToken.length <= 12) {
+      setSlashQuery(currentToken.slice(1).toLowerCase());
+      openMenu();
+    } else {
+      setSlashQuery('');
+      setShowSlashMenu(false);
+    }
+  };
+
+  const handleEditorKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Escape') {
+      setShowSlashMenu(false);
+      setSlashQuery('');
+      return;
+    }
+    if (event.key !== 'Enter' || !showSlashMenu || companionLoading) return;
+    const matches = slashCommands.filter(({ aliases }) =>
+      aliases.some((alias) => alias.startsWith(slashQuery))
+    );
+    if (matches.length === 0) return;
+    event.preventDefault();
+    const selectedCommand = matches[0].command;
+    const cleaned = content.replace(/(?:^|\s)\/[^\s]*$/, '').trimEnd();
+    setContent(cleaned);
+    setSlashQuery('');
+    setShowSlashMenu(false);
+    void handleInvokeCompanion(selectedCommand, undefined, cleaned);
+  };
+
+  const handleCommandSelect = (command: '/gem' | '/ask' | '/summarise' | '/prompt' | '/quotes') => {
+    const cleaned = /(?:^|\s)\/[^\s]*$/.test(content)
+      ? content.replace(/(?:^|\s)\/[^\s]*$/, '').trimEnd()
+      : content;
+    setContent(cleaned);
+    setSlashQuery('');
+    setShowSlashMenu(false);
+    void handleInvokeCompanion(command, undefined, cleaned);
+  };
 
   const handleInvokeCompanion = async (
     cmd: '/gem' | '/ask' | '/summarise' | '/prompt' | '/quotes',
