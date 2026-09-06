@@ -27,6 +27,7 @@ export interface JournalEntry {
   weather?: string;
   reflectionTone?: string;
   marginNotes?: string[];
+  coordinates?: { lat: number; lng: number };
   createdAt: string;
   updatedAt: string;
 }

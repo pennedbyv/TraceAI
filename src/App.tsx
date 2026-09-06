@@ -268,7 +268,15 @@ export default function App() {
             />
           )}
 
-          {activeSection === 'places' && <PlacesView />}
+          {activeSection === 'places' && (
+            <PlacesView
+              entries={entries}
+              onSelectEntry={(entry) => {
+                setActiveEntry(entry);
+                setActiveSection('write');
+              }}
+            />
+          )}
 
           {activeSection === 'settings' && (
             <SettingsView

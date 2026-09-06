@@ -17,6 +17,7 @@ import {
   Check,
   BookOpen,
   MessageSquare,
+  MapPin,
 } from 'lucide-react';
 
 interface NotebookEditorProps {
@@ -228,6 +229,55 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
     setTimeout(() => setCopiedId(false), 2000);
   };
 
+  const handleAddLocation = () => {
+    if (!navigator.geolocation) {
+      setSaveBanner('Geolocation not supported by this browser.');
+      setTimeout(() => setSaveBanner(null), 3000);
+      return;
+    }
+    setSaveBanner('Acquiring GPS coordinates...');
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        // Reverse geocode with OpenStreetMap Nominatim (free, no key)
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+          const data = await res.json();
+          const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || 'Unknown';
+          const state = data.address?.state || '';
+          const country = data.address?.country_code?.toUpperCase() || '';
+          const locationStr = [city, state, country].filter(Boolean).join(', ');
+          const updated: JournalEntry = {
+            ...entry,
+            title,
+            content,
+            category,
+            tags,
+            marginNotes,
+            location: locationStr,
+            coordinates: { lat: latitude, lng: longitude },
+          };
+          onSaveEntry(updated);
+          setSaveBanner(`📍 Location pinned: ${locationStr}`);
+        } catch {
+          const updated: JournalEntry = {
+            ...entry, title, content, category, tags, marginNotes,
+            location: `${latitude.toFixed(4)}° N, ${longitude.toFixed(4)}° E`,
+            coordinates: { lat: latitude, lng: longitude },
+          };
+          onSaveEntry(updated);
+          setSaveBanner(`📍 Coordinates saved`);
+        }
+        setTimeout(() => setSaveBanner(null), 4000);
+      },
+      () => {
+        setSaveBanner('Location access denied.');
+        setTimeout(() => setSaveBanner(null), 3000);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   const handleToggleSpeak = () => {
     if (audioRecording) {
       setAudioRecording(false);
@@ -331,11 +381,22 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
           </div>
 
           {/* Weather Bar */}
-          <div className="flex items-center gap-2 mb-6 text-xs text-[#827379] italic font-serif">
-            <Cloud className="w-3.5 h-3.5 text-[#486369]" />
-            <span>{entry.location || 'Mission District, SF'}</span>
-            <span>•</span>
-            <span>{entry.weather || 'Fog clearing, 59°F • 09:14 AM'}</span>
+          <div className="flex items-center justify-between gap-2 mb-6">
+            <div className="flex items-center gap-2 text-xs text-[#827379] italic font-serif">
+              <Cloud className="w-3.5 h-3.5 text-[#486369]" />
+              <span>{entry.location || 'No location set'}</span>
+              <span>•</span>
+              <span>{entry.weather || 'Fog clearing, 59°F • 09:14 AM'}</span>
+            </div>
+            <button
+              onClick={handleAddLocation}
+              title="Pin current GPS location to this entry"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#f5f3f0] hover:bg-[#efeeeb] border border-[#d4c2c9]/40 text-[#504349] hover:text-[#854c6c] text-[11px] font-medium transition-colors cursor-pointer"
+              type="button"
+            >
+              <MapPin className="w-3 h-3" />
+              {entry.coordinates ? 'Update location' : 'Pin location'}
+            </button>
           </div>
 
           {/* Title */}
