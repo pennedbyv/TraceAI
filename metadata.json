@@ -1,0 +1,6 @@
+{
+  "name": "Trace — Private AI Journal",
+  "description": "A professional-first private digital notebook with Firebase authentication, Firestore isolation, and Gemini AI companion.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
