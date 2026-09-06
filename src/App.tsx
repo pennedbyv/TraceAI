@@ -235,10 +235,11 @@ export default function App() {
         personalEntriesCount={personalEntriesCount}
         streakCount={streakCount}
         collapsed={sidebarCollapsed}
+        onToggleSidebar={() => setSidebarCollapsed((collapsed) => !collapsed)}
       />
 
       {/* Main Sanctuary Canvas */}
-      <main className={`flex min-h-screen flex-1 flex-col transition-[margin] duration-200 max-md:ml-0 ${sidebarCollapsed ? 'ml-20' : 'ml-[360px] max-xl:ml-72'}`}>
+      <main className={`flex min-h-screen flex-1 flex-col transition-[margin] duration-200 max-md:ml-0 ${sidebarCollapsed ? 'ml-20' : 'ml-80 max-xl:ml-72'}`}>
         <Header
           searchQuery={searchQuery}
           onSearchChange={(query) => {
@@ -247,8 +248,6 @@ export default function App() {
           }}
           syncStatus={syncStatus}
           onOpenSearchModal={() => setActiveSection('search')}
-          sidebarCollapsed={sidebarCollapsed}
-          onToggleSidebar={() => setSidebarCollapsed((collapsed) => !collapsed)}
         />
 
         <div className="flex-1 pb-16">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Share2, Loader2, AlertCircle, Bell, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Search, Share2, Loader2, AlertCircle, Bell } from 'lucide-react';
 
 interface HeaderProps {
   searchQuery: string;
@@ -7,8 +7,6 @@ interface HeaderProps {
   syncStatus: 'synced' | 'saving' | 'error';
   lastSavedText?: string;
   onOpenSearchModal: () => void;
-  sidebarCollapsed: boolean;
-  onToggleSidebar: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -17,8 +15,6 @@ export const Header: React.FC<HeaderProps> = ({
   syncStatus,
   lastSavedText = 'All notes synced to private vault',
   onOpenSearchModal,
-  sidebarCollapsed,
-  onToggleSidebar,
 }) => {
   const syncLabel = syncStatus === 'saving'
     ? 'Persisting to Realtime Database...'
@@ -29,15 +25,6 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 bg-[#f8f7f4]/92 backdrop-blur-md px-12 py-5 flex items-center justify-between z-40 border-b border-[#e3dedb] select-none max-xl:px-6 max-md:px-4">
       <div className="flex min-w-0 items-center gap-4">
-        <button
-          onClick={onToggleSidebar}
-          className="shrink-0 rounded-xl border border-[#e3dedb] bg-white p-2.5 text-[#504349] transition-colors hover:text-[#1b1c1a]"
-          type="button"
-          title={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}
-          aria-label={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}
-        >
-          {sidebarCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
-        </button>
         {/* Sync Status Badge */}
         <div className="hidden min-w-0 items-center gap-2 text-xs text-[#504349] sm:flex">
           {syncStatus === 'saving' ? (

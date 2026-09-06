@@ -10,6 +10,8 @@ import {
   LogOut,
   Flower2,
   PlusCircle,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -22,6 +24,7 @@ interface SidebarProps {
   personalEntriesCount: number;
   streakCount: number;
   collapsed: boolean;
+  onToggleSidebar: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -34,17 +37,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
   personalEntriesCount,
   streakCount,
   collapsed,
+  onToggleSidebar,
 }) => {
   return (
-    <aside className={`fixed left-0 top-0 z-50 flex h-screen flex-col justify-between overflow-y-auto border-r border-[#e3dedb] bg-[#f4f2ef] select-none transition-[width,transform] duration-200 max-md:w-[min(86vw,360px)] ${collapsed ? 'w-20 max-xl:w-20 max-md:-translate-x-full' : 'w-[360px] max-xl:w-72 max-md:translate-x-0'}`}>
+    <aside className={`fixed left-0 top-0 z-50 flex h-screen flex-col justify-between overflow-y-auto border-r border-[#e3dedb] bg-[#f4f2ef] select-none transition-[width,transform] duration-200 max-md:w-[min(86vw,320px)] ${collapsed ? 'w-20 max-xl:w-20 max-md:-translate-x-full' : 'w-80 max-xl:w-72 max-md:translate-x-0'}`}>
       <div className={`flex flex-col gap-7 max-xl:gap-4 ${collapsed ? 'p-4' : 'p-12 max-xl:p-6'}`}>
         {/* Brand Header */}
-        <div className={`mb-6 flex items-center ${collapsed ? 'justify-center' : 'gap-5'}`}>
+        <div className={`mb-6 flex items-center ${collapsed ? 'flex-col justify-center gap-3' : 'justify-between gap-5'}`}>
           <img src="/assets/trace-logo.png" alt="Trace logo" className={`${collapsed ? 'h-12 w-12 rounded-xl' : 'h-16 w-16 rounded-2xl'} shrink-0 object-contain shadow-[0_5px_12px_rgba(120,65,96,0.12)]`} />
           {!collapsed && <div className="flex flex-col">
             <span className="font-serif text-4xl leading-none tracking-tight text-[#1b1c1a]">Trace</span>
           </div>
           }
+          <button
+            onClick={onToggleSidebar}
+            className="shrink-0 rounded-xl border border-[#e3dedb] bg-white p-2.5 text-[#504349] transition-colors hover:text-[#1b1c1a]"
+            type="button"
+            title={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+            aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+          >
+            {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+          </button>
         </div>
 
         {/* New Entry Button */}
