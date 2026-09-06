@@ -28,6 +28,7 @@ export interface JournalEntry {
   reflectionTone?: string;
   marginNotes?: string[];
   coordinates?: { lat: number; lng: number };
+  pinType?: 'default' | 'home' | 'office' | 'love' | 'cafe' | 'nature' | 'travel' | 'favorite' | 'temple' | 'memory';
   createdAt: string;
   updatedAt: string;
 }

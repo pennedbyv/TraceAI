@@ -143,7 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <MapPin className="w-4 h-4 text-[#4a6550]" />
                 <span className="text-lg">Places</span>
               </div>
-              <span className="text-[10px] text-[#504349] truncate max-w-[80px]">Kyoto / SF</span>
+              <span className="text-[10px] text-[#504349] truncate max-w-[80px]"></span>
             </button>
           </nav>
         </div>
