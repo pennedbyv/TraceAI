@@ -20,6 +20,12 @@ export const Header: React.FC<HeaderProps> = ({
   lastSavedText = 'All notes synced to private vault',
   onOpenSearchModal,
 }) => {
+  const syncLabel = syncStatus === 'saving'
+    ? 'Persisting to Firestore...'
+    : syncStatus === 'error'
+      ? 'Firestore sync failed'
+      : lastSavedText;
+
   return (
     <header className="sticky top-0 bg-[#f8f7f4]/92 backdrop-blur-md px-12 py-5 flex items-center justify-between z-40 border-b border-[#e3dedb] select-none max-xl:px-6 max-md:px-4">
       <div className="flex items-center gap-8">
@@ -70,7 +76,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="w-2 h-2 rounded-full bg-[#4a6550]" />
           )}
           <span className="text-sm text-[#504349]">
-            {syncStatus === 'saving' ? 'Persisting to Firestore...' : lastSavedText}
+            {syncLabel}
           </span>
         </div>
       </div>

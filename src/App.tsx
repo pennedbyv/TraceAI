@@ -92,11 +92,16 @@ export default function App() {
     };
 
     setSyncStatus('saving');
-    await saveJournalEntry(currentUser.uid, newEntry);
-    setEntries((prev) => [newEntry, ...prev]);
-    setActiveEntry(newEntry);
-    setActiveSection('write');
-    setSyncStatus('synced');
+    try {
+      await saveJournalEntry(currentUser.uid, newEntry);
+      setEntries((prev) => [newEntry, ...prev]);
+      setActiveEntry(newEntry);
+      setActiveSection('write');
+      setSyncStatus('synced');
+    } catch (err) {
+      console.error('Failed to create entry:', err);
+      setSyncStatus('error');
+    }
   };
 
   const handleSaveEntry = async (updated: JournalEntry) => {

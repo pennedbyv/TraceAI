@@ -60,28 +60,24 @@ export async function saveJournalEntry(userId: string, entry: JournalEntry): Pro
     throw new Error('User identity UID is required to save private journal data.');
   }
 
+  if (!firestore) {
+    throw new Error('Firestore is not configured. Add the VITE_FIREBASE_* values and restart the app.');
+  }
+
   const cleanEntry = sanitizePayload({
     ...entry,
     userId,
     updatedAt: new Date().toISOString(),
   });
 
-  if (firestore) {
-    try {
-      const entryRef = doc(firestore, 'users', userId, 'entries', entry.id);
-      await setDoc(entryRef, cleanEntry, { merge: true });
-      return;
-    } catch (err) {
-      console.warn('Firestore write failed, persisting to isolated client vault:', err);
-    }
+  try {
+    const entryRef = doc(firestore, 'users', userId, 'entries', entry.id);
+    await setDoc(entryRef, cleanEntry, { merge: true });
+    removeLocalEntry(userId, entry.id);
+  } catch (err) {
+    console.error('Firestore journal write failed:', err);
+    throw new Error('Journal could not be saved to Firestore. Check your Firebase rules and connection.');
   }
-
-  // User-isolated local vault persistence
-  const key = getLocalEntriesKey(userId);
-  const existing = getLocalEntries(userId);
-  const filtered = existing.filter((e) => e.id !== entry.id);
-  const updated = [cleanEntry, ...filtered];
-  localStorage.setItem(key, JSON.stringify(updated));
 }
 
 /**
@@ -90,38 +86,54 @@ export async function saveJournalEntry(userId: string, entry: JournalEntry): Pro
 export async function getUserEntries(userId: string): Promise<JournalEntry[]> {
   if (!userId) return [];
 
-  if (firestore) {
-    try {
-      const entriesCol = collection(firestore, 'users', userId, 'entries');
-      const q = query(entriesCol, orderBy('updatedAt', 'desc'));
-      const snapshot = await getDocs(q);
-      const list: JournalEntry[] = [];
-      snapshot.forEach((d) => {
-        list.push(d.data() as JournalEntry);
-      });
-      if (list.length > 0) return list;
-    } catch (err) {
-      console.warn('Firestore query failed, reading from isolated local vault:', err);
-    }
+  if (!firestore) {
+    throw new Error('Firestore is not configured. Add the VITE_FIREBASE_* values and restart the app.');
   }
 
-  return getLocalEntries(userId);
+  try {
+    const entriesCol = collection(firestore, 'users', userId, 'entries');
+    const q = query(entriesCol, orderBy('updatedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    const list: JournalEntry[] = [];
+    snapshot.forEach((d) => {
+      list.push(d.data() as JournalEntry);
+    });
+
+    // Recover drafts written by the previous local fallback into Firestore once.
+    const localEntries = getLocalEntries(userId);
+    const remoteIds = new Set(list.map((entry) => entry.id));
+    const entriesToMigrate = localEntries.filter((entry) => !remoteIds.has(entry.id));
+    if (entriesToMigrate.length > 0) {
+      await Promise.all(entriesToMigrate.map((entry) => saveJournalEntry(userId, entry)));
+      list.push(...entriesToMigrate);
+    }
+
+    return list.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  } catch (err) {
+    console.error('Firestore journal query failed:', err);
+    throw new Error('Journal entries could not be loaded from Firestore. Check your Firebase rules and connection.');
+  }
 }
 
 function getLocalEntries(userId: string): JournalEntry[] {
   const key = getLocalEntriesKey(userId);
   const data = localStorage.getItem(key);
-  if (!data) {
-    // Seed initial entry tailored to this user
-    const userInitialEntry = { ...INITIAL_SAMPLE_ENTRY, userId };
-    localStorage.setItem(key, JSON.stringify([userInitialEntry]));
-    return [userInitialEntry];
-  }
+  if (!data) return [];
   try {
     return JSON.parse(data);
   } catch {
     return [];
   }
+}
+
+function removeLocalEntry(userId: string, entryId: string): void {
+  const existing = getLocalEntries(userId);
+  const remaining = existing.filter((entry) => entry.id !== entryId);
+  if (remaining.length === 0) {
+    localStorage.removeItem(getLocalEntriesKey(userId));
+    return;
+  }
+  localStorage.setItem(getLocalEntriesKey(userId), JSON.stringify(remaining));
 }
 
 /**
