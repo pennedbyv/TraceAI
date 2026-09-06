@@ -171,7 +171,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
   };
 
   return (
-    <div className={`relative max-w-5xl mx-auto py-8 px-4 sm:px-6 transition-all duration-200 ${isFocusMode ? 'max-w-3xl' : ''}`}>
+    <div className={`relative max-w-[1320px] mx-auto py-10 px-8 sm:px-12 transition-all duration-200 ${isFocusMode ? 'max-w-4xl' : ''}`}>
       {/* Save Notification Toast */}
       {saveBanner && (
         <div className="fixed top-18 right-8 z-50 px-4 py-2.5 rounded-xl bg-white text-[#1b1c1a] border border-[#d4c2c9] shadow-lg text-xs flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
@@ -183,12 +183,12 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
       {/* Grid Layout: Main Manuscript Paper Leaf + Sidecar Column */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Main Paper Leaf */}
-        <article className={`bg-white rounded-2xl shadow-[0_2px_16px_rgba(0,0,0,0.03)] border border-[#eae8e5] p-8 sm:p-12 relative overflow-hidden transition-all ${activeInteraction && !isFocusMode ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
+        <article className={`bg-white rounded-[22px] shadow-[0_18px_38px_rgba(43,33,36,0.08)] border border-[#eeeae7] p-10 sm:p-16 relative overflow-hidden transition-all ${activeInteraction && !isFocusMode ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
           {/* Subtle decorative archival corner notch */}
           <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#d4c2c9]/40 rounded-tr-2xl pointer-events-none" />
 
           {/* Top Metadata Strip */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-5 mb-6 border-b border-[#efeeeb]">
+          <div className="flex flex-wrap items-center justify-between gap-4 pb-5 mb-10 border-b border-[#efeeeb]">
             <div className="flex items-center gap-3 text-xs text-[#504349]">
               <span className="font-serif italic text-sm text-[#1b1c1a] font-medium">
                 {new Date(entry.createdAt).toLocaleDateString('en-US', {
@@ -241,7 +241,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Title of your reflection..."
-            className="w-full font-serif text-3xl sm:text-4xl text-[#1b1c1a] font-normal tracking-tight placeholder:text-[#827379]/40 focus:outline-none mb-6 leading-snug"
+            className="w-full font-serif text-4xl sm:text-6xl text-[#1b1c1a] font-normal tracking-tight placeholder:text-[#827379]/40 focus:outline-none mb-8 leading-[1.05]"
           />
 
           {/* Notebook Body Textarea */}
@@ -252,7 +252,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Write freely. Use / to trigger Gemini companion reflections, summaries, or quotes..."
-              className="w-full font-serif text-lg text-[#1b1c1a] leading-relaxed bg-transparent resize-y focus:outline-none placeholder:text-[#827379]/40 selection:bg-[#f9b2d7]/30"
+              className="w-full font-serif text-xl sm:text-2xl text-[#1b1c1a] leading-[1.8] bg-transparent resize-y focus:outline-none placeholder:text-[#827379]/40 selection:bg-[#f9b2d7]/30"
             />
 
             {/* Quick slash trigger pill at bottom of editor */}

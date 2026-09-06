@@ -32,23 +32,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   personalEntriesCount,
 }) => {
   return (
-    <aside className="fixed left-0 top-0 h-screen w-72 bg-[#f5f3f0] shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between overflow-y-auto border-r border-[#d4c2c9]/30 select-none">
-      <div className="p-6 flex flex-col gap-4">
+    <aside className="fixed left-0 top-0 h-screen w-[360px] bg-[#f4f2ef] z-50 flex flex-col justify-between overflow-y-auto border-r border-[#e3dedb] select-none max-xl:w-72 max-md:hidden">
+      <div className="p-12 flex flex-col gap-7 max-xl:p-6 max-xl:gap-4">
         {/* Brand Header */}
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 shrink-0 flex items-center justify-center rounded-lg bg-[#f9b2d7] text-[#784160] shadow-xs font-serif font-bold text-lg">
+        <div className="flex items-center gap-5 mb-6">
+          <div className="w-16 h-16 shrink-0 flex items-center justify-center rounded-2xl bg-[#f4a9d1] text-[#784160] shadow-[0_5px_12px_rgba(120,65,96,0.12)] font-serif font-bold text-xl">
             T
           </div>
           <div className="flex flex-col">
-            <span className="font-serif text-xl text-[#1b1c1a] tracking-tight leading-none">Trace</span>
-            <span className="text-[10px] text-[#504349] tracking-widest uppercase mt-1 font-medium">Mindful Studio</span>
+            <span className="font-serif text-4xl text-[#1b1c1a] tracking-tight leading-none">Trace</span>
+            <span className="text-sm text-[#504349] tracking-wide uppercase mt-2 font-medium">Mindful Studio</span>
           </div>
         </div>
 
         {/* New Entry Button */}
         <button
           onClick={onNewEntry}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#f9b2d7] text-[#784160] hover:bg-[#ffd8ea] text-xs font-semibold transition-all duration-150 hover:-translate-y-0.5 shadow-[0_2px_8px_rgba(133,76,108,0.12)] cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 py-5 px-4 rounded-2xl bg-[#f4a9d1] text-[#784160] hover:bg-[#ffd8ea] text-lg font-semibold transition-all duration-150 hover:-translate-y-0.5 shadow-[0_5px_12px_rgba(133,76,108,0.12)] cursor-pointer"
           type="button"
         >
           <PlusCircle className="w-4 h-4" />
@@ -57,13 +57,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Primary Navigation */}
         <div className="mt-2">
-          <span className="text-[10px] text-[#504349] uppercase tracking-wider px-2 mb-2 block font-semibold">
+            <span className="text-sm text-[#504349] uppercase tracking-wide px-2 mb-3 block font-medium">
             Navigation
           </span>
           <nav className="flex flex-col gap-1">
             <button
               onClick={() => onSelectSection('write')}
-              className={`flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors cursor-pointer ${
+              className={`flex items-center justify-between px-4 py-4 rounded-2xl text-left transition-colors cursor-pointer ${
                 activeSection === 'write'
                   ? 'bg-[#e4e2df] text-[#1b1c1a] font-semibold shadow-2xs'
                   : 'text-[#504349] hover:bg-[#efeeeb] hover:text-[#1b1c1a]'
@@ -72,7 +72,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-3">
                 <PenLine className="w-4 h-4 text-[#854c6c]" />
-                <span className="text-xs">Write</span>
+                <span className="text-lg">Write</span>
               </div>
               {activeSection === 'write' && (
                 <span className="w-1.5 h-1.5 rounded-full bg-[#854c6c]" />
@@ -81,7 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             <button
               onClick={() => onSelectSection('on-this-day')}
-              className={`flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors cursor-pointer ${
+              className={`flex items-center justify-between px-4 py-4 rounded-2xl text-left transition-colors cursor-pointer ${
                 activeSection === 'on-this-day'
                   ? 'bg-[#e4e2df] text-[#1b1c1a] font-semibold shadow-2xs'
                   : 'text-[#504349] hover:bg-[#efeeeb] hover:text-[#1b1c1a]'
@@ -90,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-3">
                 <Sparkles className="w-4 h-4 text-[#486369]" />
-                <span className="text-xs">On This Day</span>
+                <span className="text-lg">On This Day</span>
               </div>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#cbe8ef] text-[#021f24] font-medium">
                 3 yrs
@@ -99,7 +99,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             <button
               onClick={() => onSelectSection('search')}
-              className={`flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors cursor-pointer ${
+              className={`flex items-center justify-between px-4 py-4 rounded-2xl text-left transition-colors cursor-pointer ${
                 activeSection === 'search'
                   ? 'bg-[#e4e2df] text-[#1b1c1a] font-semibold shadow-2xs'
                   : 'text-[#504349] hover:bg-[#efeeeb] hover:text-[#1b1c1a]'
@@ -108,14 +108,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-3">
                 <Search className="w-4 h-4 text-[#504349]" />
-                <span className="text-xs">Search</span>
+                <span className="text-lg">Search</span>
               </div>
               <span className="text-[10px] text-[#827379] font-mono">⌘K</span>
             </button>
 
             <button
               onClick={() => onSelectSection('calendar')}
-              className={`flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors cursor-pointer ${
+              className={`flex items-center justify-between px-4 py-4 rounded-2xl text-left transition-colors cursor-pointer ${
                 activeSection === 'calendar'
                   ? 'bg-[#e4e2df] text-[#1b1c1a] font-semibold shadow-2xs'
                   : 'text-[#504349] hover:bg-[#efeeeb] hover:text-[#1b1c1a]'
@@ -124,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-3">
                 <CalendarIcon className="w-4 h-4 text-[#784160]" />
-                <span className="text-xs">Calendar</span>
+                <span className="text-lg">Calendar</span>
               </div>
               {activeSection === 'calendar' && (
                 <span className="w-1.5 h-1.5 rounded-full bg-[#854c6c]" />
@@ -133,7 +133,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             <button
               onClick={() => onSelectSection('places')}
-              className={`flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors cursor-pointer ${
+              className={`flex items-center justify-between px-4 py-4 rounded-2xl text-left transition-colors cursor-pointer ${
                 activeSection === 'places'
                   ? 'bg-[#e4e2df] text-[#1b1c1a] font-semibold shadow-2xs'
                   : 'text-[#504349] hover:bg-[#efeeeb] hover:text-[#1b1c1a]'
@@ -142,7 +142,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-3">
                 <MapPin className="w-4 h-4 text-[#4a6550]" />
-                <span className="text-xs">Places</span>
+                <span className="text-lg">Places</span>
               </div>
               <span className="text-[10px] text-[#504349] truncate max-w-[80px]">Kyoto / SF</span>
             </button>
@@ -151,14 +151,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Collections */}
         <div className="mt-1">
-          <span className="text-[10px] text-[#504349] uppercase tracking-wider px-2 mb-2 block font-semibold">
+            <span className="text-sm text-[#504349] uppercase tracking-wide px-2 mb-3 block font-medium">
             Collections
           </span>
           <div className="flex flex-col gap-1">
             <div className="flex items-center justify-between px-3 py-1.5 rounded-lg text-[#504349]">
               <div className="flex items-center gap-3">
                 <span className="w-2 h-2 rounded-full bg-[#cbe8ef]" />
-                <span className="text-xs">Work</span>
+                <span className="text-lg">Work</span>
               </div>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#efeeeb] text-[#504349] font-mono font-medium">
                 {workEntriesCount}
@@ -167,7 +167,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex items-center justify-between px-3 py-1.5 rounded-lg text-[#504349]">
               <div className="flex items-center gap-3">
                 <span className="w-2 h-2 rounded-full bg-[#f9b2d7]" />
-                <span className="text-xs">Personal</span>
+                <span className="text-lg">Personal</span>
               </div>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#efeeeb] text-[#504349] font-mono font-medium">
                 {personalEntriesCount}
@@ -177,7 +177,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Streak Ribbon Badge */}
-        <div className="p-3 rounded-xl bg-[#efeeeb] border border-[#d4c2c9]/30 flex items-center justify-between mt-1">
+        <div className="p-4 rounded-2xl bg-[#efeeeb] border border-[#d4c2c9]/50 flex items-center justify-between mt-2">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-full bg-[#ccead0] flex items-center justify-center text-[#3e5944]">
               <Flower2 className="w-4 h-4" />
@@ -194,7 +194,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* User Profile Footer */}
-      <div className="p-4 border-t border-[#d4c2c9]/30 flex flex-col gap-3 bg-[#f5f3f0]">
+      <div className="p-8 border-t border-[#d4c2c9]/30 flex flex-col gap-5 bg-[#f4f2ef] max-xl:p-4">
         <div className="flex items-center justify-between px-1">
           <button
             onClick={() => onSelectSection('settings')}

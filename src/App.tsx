@@ -163,7 +163,7 @@ export default function App() {
 
   // 3. Authenticated State -> Private Digital Notebook & Enclave
   return (
-    <div className="min-h-screen bg-[#fbf9f6] text-[#1b1c1a] flex">
+    <div className="min-h-screen bg-[#f8f7f4] text-[#1b1c1a] flex">
       {/* Sidebar Navigation */}
       <Sidebar
         user={currentUser}
@@ -176,7 +176,7 @@ export default function App() {
       />
 
       {/* Main Sanctuary Canvas */}
-      <main className="flex-1 ml-72 flex flex-col min-h-screen">
+      <main className="flex-1 ml-[360px] flex flex-col min-h-screen max-xl:ml-72 max-md:ml-0">
         <Header
           selectedCategory={selectedCategory}
           onSelectCategory={(cat) => setSelectedCategory(cat)}
