@@ -164,7 +164,7 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ entries, onSelectEntry }
   }, [leafletReady, JSON.stringify(groups.map((g) => ({ l: g.location, n: g.entries.length })))]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#f8f7f4]">
+    <div className="flex flex-col min-h-screen bg-[#f8f7f4] relative" style={{ zIndex: 0, isolation: 'isolate' }}>
       {/* Header */}
       <div className="px-8 pt-8 pb-5">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#f5f3f0] text-[#504349] text-[10px] font-semibold uppercase tracking-wider mb-3 border border-[#d4c2c9]/40">
@@ -191,7 +191,7 @@ export const PlacesView: React.FC<PlacesViewProps> = ({ entries, onSelectEntry }
       {/* Map + Side panel */}
       <div className="flex flex-1 gap-4 px-8 pb-8 items-start">
         {/* Map container */}
-        <div className="flex-1 rounded-2xl overflow-hidden border border-[#e8e4e1] shadow-[0_4px_24px_rgba(43,33,36,0.08)] relative" style={{ minHeight: 540 }}>
+        <div className="flex-1 rounded-2xl overflow-hidden border border-[#e8e4e1] shadow-[0_4px_24px_rgba(43,33,36,0.08)] relative" style={{ minHeight: 540, isolation: 'isolate', zIndex: 0 }}>
           {!leafletReady && (
             <div className="absolute inset-0 flex items-center justify-center bg-[#f5f3f0] z-10">
               <span className="text-xs text-[#827379] font-serif italic animate-pulse">Loading map...</span>

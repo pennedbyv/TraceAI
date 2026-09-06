@@ -219,7 +219,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             />
             <div className="flex flex-col min-w-0">
               <span className="text-xs font-semibold text-[#1b1c1a] truncate">
-                {user.displayName || 'Elena Rostova'}
+                {user.displayName || ''}
               </span>
               <span className="text-[10px] text-[#504349] truncate max-w-[120px]">
                 {user.email || 'private@trace.journal'}
