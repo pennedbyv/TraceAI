@@ -5,7 +5,6 @@ import { saveCompanionInteraction } from '../../lib/firestore/service';
 import {
   Sparkles,
   Mic,
-  MicOff,
   Maximize2,
   Minimize2,
   Cloud,
