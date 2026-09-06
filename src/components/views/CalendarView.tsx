@@ -9,6 +9,20 @@ interface CalendarViewProps {
   user: UserProfile;
 }
 
+interface SynergyPoint {
+  label: string;
+  journal: number;
+  calendar: number;
+  overlap: number;
+}
+
+const sampleSynergyData: SynergyPoint[] = [
+  { label: 'W1', journal: 2, calendar: 4, overlap: 1 },
+  { label: 'W2', journal: 4, calendar: 6, overlap: 3 },
+  { label: 'W3', journal: 3, calendar: 5, overlap: 2 },
+  { label: 'W4', journal: 5, calendar: 7, overlap: 4 },
+];
+
 export const CalendarView: React.FC<CalendarViewProps> = ({ entries, onSelectEntry, user }) => {
   const [activeTab, setActiveTab] = useState<'month' | 'week' | 'timeline'>('month');
   const [calendarEvents, setCalendarEvents] = useState<GoogleCalendarEvent[]>([]);
@@ -320,11 +334,28 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ entries, onSelectEnt
         <section className="p-6 rounded-2xl bg-white border border-[#eae8e5] shadow-xs">
           <span className="text-[10px] text-[#486369] uppercase tracking-wider font-semibold">Correlation insight</span>
           <h3 className="font-serif text-xl text-[#1b1c1a] mt-1">Calendar sync synergy</h3>
-          <p className="text-xs text-[#504349] leading-relaxed mt-3">
-            {monthEventCount > 0 && journalDays > 0
-              ? 'Your journal and primary calendar are now visible together for this month.'
-              : 'Add calendar events and journal entries to see their relationship here.'}
-          </p>
+          <div className="mt-4">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] text-[#504349]" aria-label="Graph legend">
+              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#486369]" />Calendar</span>
+              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#f9b2d7]" />Journal</span>
+              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#854c6c]" />Both</span>
+            </div>
+            <div className="relative mt-3 flex h-32 items-end gap-3 border-b border-[#efeeeb] bg-[linear-gradient(to_bottom,transparent_24%,#efeeeb_25%,transparent_26%,transparent_49%,#efeeeb_50%,transparent_51%,transparent_74%,#efeeeb_75%,transparent_76%)] px-1 pt-3" role="img" aria-label="Illustrative weekly comparison of calendar events, journal entries, and overlapping days">
+              {sampleSynergyData.map((point) => (
+                <div key={point.label} className="flex h-full min-w-0 flex-1 items-end justify-center gap-1">
+                  <div className="flex h-full items-end gap-0.5" title={`${point.label}: ${point.calendar} calendar events, ${point.journal} journal entries, ${point.overlap} overlapping days`}>
+                    <span className="w-2 rounded-t-sm bg-[#486369]" style={{ height: `${(point.calendar / 7) * 100}%` }} />
+                    <span className="w-2 rounded-t-sm bg-[#f9b2d7]" style={{ height: `${(point.journal / 7) * 100}%` }} />
+                    <span className="w-2 rounded-t-sm bg-[#854c6c]" style={{ height: `${(point.overlap / 7) * 100}%` }} />
+                  </div>
+                  <span className="absolute mt-[9.5rem] text-[9px] font-mono text-[#827379]">{point.label}</span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-5 text-xs leading-relaxed text-[#504349]">
+              Illustrative weekly pattern. The graph will compare your real calendar events and journal activity once the sync data is connected.
+            </p>
+          </div>
         </section>
       </div>
     </div>
