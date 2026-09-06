@@ -20,6 +20,7 @@ interface SidebarProps {
   onSignOut: () => void;
   workEntriesCount: number;
   personalEntriesCount: number;
+  streakCount: number;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -30,18 +31,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSignOut,
   workEntriesCount,
   personalEntriesCount,
+  streakCount,
 }) => {
   return (
     <aside className="fixed left-0 top-0 h-screen w-[360px] bg-[#f4f2ef] z-50 flex flex-col justify-between overflow-y-auto border-r border-[#e3dedb] select-none max-xl:w-72 max-md:hidden">
       <div className="p-12 flex flex-col gap-7 max-xl:p-6 max-xl:gap-4">
         {/* Brand Header */}
         <div className="flex items-center gap-5 mb-6">
-          <div className="w-16 h-16 shrink-0 flex items-center justify-center rounded-2xl bg-[#f4a9d1] text-[#784160] shadow-[0_5px_12px_rgba(120,65,96,0.12)] font-serif font-bold text-xl">
-            T
-          </div>
+          <img src="/assets/trace-logo.png" alt="Trace logo" className="w-16 h-16 shrink-0 rounded-2xl object-contain shadow-[0_5px_12px_rgba(120,65,96,0.12)]" />
           <div className="flex flex-col">
             <span className="font-serif text-4xl text-[#1b1c1a] tracking-tight leading-none">Trace</span>
-            <span className="text-sm text-[#504349] tracking-wide uppercase mt-2 font-medium">Mindful Studio</span>
           </div>
         </div>
 
@@ -183,8 +182,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Flower2 className="w-4 h-4" />
             </div>
             <div className="flex flex-col">
-              <span className="text-xs font-semibold text-[#1b1c1a]">14-day streak</span>
-              <span className="text-[10px] text-[#504349]">Quiet cadence</span>
+              <span className="text-xs font-semibold text-[#1b1c1a]">{streakCount}-day streak</span>
+              <span className="text-[10px] text-[#504349]">{streakCount > 0 ? 'Quiet cadence' : 'Start today'}</span>
             </div>
           </div>
           <span className="text-[10px] text-[#4a6550] font-semibold bg-white/80 px-2 py-0.5 rounded-full border border-[#ccead0]">

@@ -4,8 +4,16 @@ export interface UserProfile {
   displayName: string | null;
   photoURL: string | null;
   isAnonymous?: boolean;
+  googleAccessToken?: string;
 }
 
+export interface GoogleCalendarEvent {
+  id: string;
+  title: string;
+  start: string;
+  end?: string;
+  allDay: boolean;
+}
 export interface JournalEntry {
   id: string;
   userId: string;

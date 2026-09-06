@@ -141,6 +141,26 @@ export default function App() {
 
   const workEntriesCount = entries.filter((e) => e.category === 'work').length;
   const personalEntriesCount = entries.filter((e) => e.category === 'personal').length;
+  const entryDays = new Set(
+    entries
+      .map((entry) => new Date(entry.createdAt))
+      .filter((date) => !Number.isNaN(date.getTime()))
+      .map((date) => `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`),
+  );
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const yesterdayKey = `${yesterday.getFullYear()}-${yesterday.getMonth()}-${yesterday.getDate()}`;
+  const streakStart = entryDays.has(todayKey) ? today : entryDays.has(yesterdayKey) ? yesterday : null;
+  let streakCount = 0;
+  if (streakStart) {
+    const streakDate = new Date(streakStart);
+    while (entryDays.has(`${streakDate.getFullYear()}-${streakDate.getMonth()}-${streakDate.getDate()}`)) {
+      streakCount += 1;
+      streakDate.setDate(streakDate.getDate() - 1);
+    }
+  }
 
   // 1. Authentication Loading State
   if (authLoading) {
@@ -173,6 +193,7 @@ export default function App() {
         onSignOut={handleSignOut}
         workEntriesCount={workEntriesCount}
         personalEntriesCount={personalEntriesCount}
+        streakCount={streakCount}
       />
 
       {/* Main Sanctuary Canvas */}
@@ -229,6 +250,7 @@ export default function App() {
           {activeSection === 'calendar' && (
             <CalendarView
               entries={entries}
+              user={currentUser}
               onSelectEntry={(entry) => {
                 setActiveEntry(entry);
                 setActiveSection('write');

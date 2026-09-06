@@ -92,12 +92,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ user, onDataPurged }
               </h4>
             </div>
             <p className="font-serif italic text-xs text-[#504349] leading-relaxed mb-4">
-              Entries are stored with client-bound isolation. Gemini reflection payloads are executed server-side without training or logging raw thoughts.
+              Entries are stored with client-bound isolation. Gemini reflection payloads are executed server-side without training .
             </p>
           </div>
           <div className="flex items-center justify-between pt-3 border-t border-[#efeeeb] text-xs">
-            <span className="text-[#827379]">Enclave Telemetry:</span>
-            <span className="font-semibold text-[#4a6550] bg-[#ccead0]/40 px-2 py-0.5 rounded-md">98% Purity</span>
+            {/* <span className="text-[#827379]">Enclave Telemetry:</span>
+            <span className="font-semibold text-[#4a6550] bg-[#ccead0]/40 px-2 py-0.5 rounded-md">98% Purity</span> */}
           </div>
         </div>
 
@@ -114,7 +114,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ user, onDataPurged }
             </p>
           </div>
           <button
-            onClick={() => alert('Exporting vault archive in Markdown (.md) and JSON format...')}
+            onClick={() => alert('Exporting vault archive in Markdown (.md)')}
             className="w-full py-2.5 rounded-xl bg-[#f5f3f0] hover:bg-[#eae8e5] text-xs font-semibold text-[#1b1c1a] border border-[#d4c2c9] transition-colors cursor-pointer"
             type="button"
           >
@@ -132,7 +132,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ user, onDataPurged }
           </h4>
         </div>
         <p className="font-serif italic text-xs text-[#504349] mb-4 leading-relaxed">
-          Permanently purge all journal entries, reflections, and multi-turn companion interactions saved under UID <span className="font-mono font-bold text-[#1b1c1a]">{user.uid}</span>. This action cannot be undone.
+          Permanently purge all journal entries, reflections.<span className="font-mono font-bold text-[#1b1c1a]">{user.uid}</span>. This action cannot be undone.
         </p>
         <button
           onClick={handlePurge}

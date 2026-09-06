@@ -15,9 +15,8 @@ import {
   X,
   Copy,
   Check,
-  CornerDownLeft,
-  ChevronRight,
   BookOpen,
+  MessageSquare,
 } from 'lucide-react';
 
 interface NotebookEditorProps {
@@ -27,18 +26,16 @@ interface NotebookEditorProps {
   onDeleteEntry?: (id: string) => void;
 }
 
-export const NotebookEditor: React.FC<NotebookEditorProps> = ({
-  entry,
-  user,
-  onSaveEntry,
-}) => {
+export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onSaveEntry }) => {
   const [title, setTitle] = useState(entry.title);
   const [content, setContent] = useState(entry.content);
+  const [slashQuery, setSlashQuery] = useState('');
   const [category, setCategory] = useState<'work' | 'personal'>(entry.category || 'work');
   const [tags, setTags] = useState<string[]>(entry.tags || []);
   const [marginNotes, setMarginNotes] = useState<string[]>(entry.marginNotes || []);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [showSlashMenu, setShowSlashMenu] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const [companionLoading, setCompanionLoading] = useState(false);
   const [activeInteraction, setActiveInteraction] = useState<CompanionInteraction | null>(null);
   const [customPromptInput, setCustomPromptInput] = useState('');
@@ -49,7 +46,6 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
 
   const contentRef = useRef<HTMLTextAreaElement>(null);
 
-  // Synchronize local states when entry changes
   useEffect(() => {
     setTitle(entry.title);
     setContent(entry.content);
@@ -59,14 +55,12 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
     setActiveInteraction(null);
   }, [entry.id]);
 
-  // Compute stats
   const words = content.trim() ? content.trim().split(/\s+/).length : 0;
   const readTime = Math.max(1, Math.ceil(words / 220));
 
-  // Auto-save debounced
   useEffect(() => {
     const timer = setTimeout(() => {
-      const updated: JournalEntry = {
+      onSaveEntry({
         ...entry,
         title,
         content,
@@ -76,10 +70,8 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
         wordCount: words,
         readingTimeMinutes: readTime,
         updatedAt: new Date().toISOString(),
-      };
-      onSaveEntry(updated);
+      });
     }, 800);
-
     return () => clearTimeout(timer);
   }, [title, content, category, tags, marginNotes]);
 
@@ -183,21 +175,20 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
 
   const handleInvokeCompanion = async (
     cmd: '/gem' | '/ask' | '/summarise' | '/prompt' | '/quotes',
-    promptText?: string
+    promptText?: string,
+    contentOverride?: string
   ) => {
     try {
       setCompanionLoading(true);
       setShowSlashMenu(false);
       setShowCustomPromptModal(false);
-
       const result = await requestCompanionReflection({
         command: cmd,
         currentTitle: title,
-        currentContent: content,
+        currentContent: contentOverride ?? content,
         userPrompt: promptText,
         userId: user.uid,
       });
-
       const newInteraction: CompanionInteraction = {
         id: 'int_' + Date.now(),
         userId: user.uid,
@@ -209,14 +200,15 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
         timestamp: new Date().toISOString(),
         suggestion: result.suggestion,
       };
-
+      setContent((c) => `${c.trimEnd()}\n\n[Gemini ${cmd}]\n${result.response}`.trimStart());
       setActiveInteraction(newInteraction);
       await saveCompanionInteraction(user.uid, newInteraction);
-
       setSaveBanner(`Companion reflection generated via ${result.modelUsed}`);
       setTimeout(() => setSaveBanner(null), 4000);
     } catch (err: unknown) {
-      console.warn('Error invoking companion:', err);
+      const message = err instanceof Error ? err.message : 'Gemini is unavailable. Try again later.';
+      setSaveBanner(message);
+      setTimeout(() => setSaveBanner(null), 5000);
     } finally {
       setCompanionLoading(false);
     }
@@ -225,14 +217,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
   const handleInsertMarginNote = (noteText: string) => {
     const updatedNotes = [...marginNotes, noteText];
     setMarginNotes(updatedNotes);
-    onSaveEntry({
-      ...entry,
-      title,
-      content,
-      category,
-      tags,
-      marginNotes: updatedNotes,
-    });
+    onSaveEntry({ ...entry, title, content, category, tags, marginNotes: updatedNotes });
     setSaveBanner('Insight inserted as margin note.');
     setTimeout(() => setSaveBanner(null), 3000);
   };
@@ -246,29 +231,24 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
   const handleToggleSpeak = () => {
     if (audioRecording) {
       setAudioRecording(false);
-      setContent(
-        (prev) =>
-          prev +
-          (prev ? '\n\n' : '') +
-          '[Voice Reflection • 09:42 AM]: Observed how physical spatial constraints preserve focus more reliably than willpower alone.'
-      );
+      setContent((prev) => prev + (prev ? '\n\n' : '') + '[Voice Reflection • 09:42 AM]: Observed how physical spatial constraints preserve focus more reliably than willpower alone.');
     } else {
       setAudioRecording(true);
       setTimeout(() => {
         setAudioRecording(false);
-        setContent(
-          (prev) =>
-            prev +
-            (prev ? '\n\n' : '') +
-            '[Audio Capture Decoded]: The mind requires deliberate pauses to synthesize architectural trade-offs.'
-        );
+        setContent((prev) => prev + (prev ? '\n\n' : '') + '[Audio Capture Decoded]: The mind requires deliberate pauses to synthesize architectural trade-offs.');
       }, 3500);
     }
   };
 
+  const visibleCommands = slashCommands.filter(
+    ({ aliases }) => !slashQuery || aliases.some((a) => a.startsWith(slashQuery))
+  );
+
   return (
     <div className={`relative max-w-[1320px] mx-auto py-10 px-8 sm:px-12 transition-all duration-200 ${isFocusMode ? 'max-w-4xl' : ''}`}>
-      {/* Save Notification Toast */}
+
+      {/* Save Banner */}
       {saveBanner && (
         <div className="fixed top-18 right-8 z-50 px-4 py-2.5 rounded-xl bg-white text-[#1b1c1a] border border-[#d4c2c9] shadow-lg text-xs flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
           <span className="w-2 h-2 rounded-full bg-[#4a6550]" />
@@ -276,29 +256,60 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
         </div>
       )}
 
-      {/* Grid Layout: Main Manuscript Paper Leaf + Sidecar Column */}
+      {/* Slash Command Menu — fixed, escapes all overflow */}
+      {showSlashMenu && visibleCommands.length > 0 && (
+        <div
+          className="fixed z-[9999] w-72 rounded-2xl bg-white border border-[#e8e4e1] shadow-[0_8px_40px_rgba(43,33,36,0.18)] overflow-hidden"
+          style={{ top: menuPos.top, left: menuPos.left }}
+        >
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#efeeeb]">
+            <span className="text-[10px] font-bold tracking-widest text-[#827379] uppercase">Slash Commands</span>
+            <span className="text-[10px] text-[#827379] font-medium tracking-wide">ESC TO CLOSE</span>
+          </div>
+          <div className="py-1">
+            {visibleCommands.map((cmd, i) => (
+              <button
+                key={cmd.command}
+                onClick={() => handleCommandSelect(cmd.command)}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors cursor-pointer ${i === 0 ? 'bg-[#fdf6fa]' : 'hover:bg-[#faf9f8]'}`}
+                type="button"
+              >
+                <span className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${cmd.iconBg}`}>
+                  {cmd.icon}
+                </span>
+                <div className="flex flex-col min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-[#1b1c1a]">{cmd.label}</span>
+                    {cmd.badge && (
+                      <span className="px-1.5 py-0.5 rounded-md bg-[#f9b2d7] text-[#784160] text-[10px] font-semibold">
+                        {cmd.badge}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-[#827379] truncate">{cmd.description}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Main Paper Leaf */}
-        <article className={`bg-white rounded-[22px] shadow-[0_18px_38px_rgba(43,33,36,0.08)] border border-[#eeeae7] p-10 sm:p-16 relative overflow-hidden transition-all ${activeInteraction && !isFocusMode ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
-          {/* Subtle decorative archival corner notch */}
+        <article className={`bg-white rounded-[22px] shadow-[0_18px_38px_rgba(43,33,36,0.08)] border border-[#eeeae7] p-10 sm:p-16 relative transition-all ${activeInteraction && !isFocusMode ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
           <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#d4c2c9]/40 rounded-tr-2xl pointer-events-none" />
 
-          {/* Top Metadata Strip */}
+          {/* Metadata Strip */}
           <div className="flex flex-wrap items-center justify-between gap-4 pb-5 mb-10 border-b border-[#efeeeb]">
             <div className="flex items-center gap-3 text-xs text-[#504349]">
               <span className="font-serif italic text-sm text-[#1b1c1a] font-medium">
-                {new Date(entry.createdAt).toLocaleDateString('en-US', {
-                  month: 'long',
-                  day: 'numeric',
-                  year: 'numeric',
-                })}
+                {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
               </span>
               <span>•</span>
               <span className="font-mono text-[11px]">{words} words</span>
               <span>•</span>
               <span className="font-mono text-[11px]">~{readTime} min read</span>
             </div>
-
             <div className="flex items-center gap-2.5">
               <select
                 value={category}
@@ -308,13 +319,9 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
                 <option value="work">Work / Strategy</option>
                 <option value="personal">Personal / Solitude</option>
               </select>
-
               <button
                 onClick={() => setIsFocusMode(!isFocusMode)}
-                className={`p-1.5 rounded-lg text-xs transition-colors flex items-center gap-1 cursor-pointer ${
-                  isFocusMode ? 'bg-[#854c6c] text-white' : 'text-[#504349] hover:bg-[#efeeeb]'
-                }`}
-                title="Toggle Distraction-Free Focus Mode"
+                className={`p-1.5 rounded-lg text-xs transition-colors flex items-center gap-1 cursor-pointer ${isFocusMode ? 'bg-[#854c6c] text-white' : 'text-[#504349] hover:bg-[#efeeeb]'}`}
                 type="button"
               >
                 {isFocusMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -323,7 +330,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
             </div>
           </div>
 
-          {/* Atmospheric Context & Weather Bar */}
+          {/* Weather Bar */}
           <div className="flex items-center gap-2 mb-6 text-xs text-[#827379] italic font-serif">
             <Cloud className="w-3.5 h-3.5 text-[#486369]" />
             <span>{entry.location || 'Mission District, SF'}</span>
@@ -331,7 +338,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
             <span>{entry.weather || 'Fog clearing, 59°F • 09:14 AM'}</span>
           </div>
 
-          {/* Title Input */}
+          {/* Title */}
           <input
             type="text"
             value={title}
@@ -340,133 +347,47 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
             className="w-full font-serif text-4xl sm:text-6xl text-[#1b1c1a] font-normal tracking-tight placeholder:text-[#827379]/40 focus:outline-none mb-8 leading-[1.05]"
           />
 
-          {/* Notebook Body Textarea */}
+          {/* Textarea */}
           <div className="relative mb-6">
             <textarea
               ref={contentRef}
               rows={14}
               value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Write freely. Use / to trigger Gemini companion reflections, summaries, or quotes..."
+              onChange={(e) => handleContentChange(e.target.value)}
+              onKeyDown={handleEditorKeyDown}
+              placeholder="Write freely. Type / to trigger commands..."
               className="w-full font-serif text-xl sm:text-2xl text-[#1b1c1a] leading-[1.8] bg-transparent resize-y focus:outline-none placeholder:text-[#827379]/40 selection:bg-[#f9b2d7]/30"
             />
 
-            {/* Quick slash trigger pill at bottom of editor */}
+            {/* Trigger bar */}
             <div className="flex items-center justify-between pt-3 border-t border-[#efeeeb] text-xs">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setShowSlashMenu(!showSlashMenu)}
+                  onClick={() => {
+                    if (showSlashMenu) {
+                      setShowSlashMenu(false);
+                    } else {
+                      openMenu();
+                    }
+                  }}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f5f3f0] hover:bg-[#efeeeb] text-[#854c6c] font-medium border border-[#d4c2c9]/30 transition-colors cursor-pointer"
                   type="button"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>/ Companion Commands</span>
                 </button>
-                <span className="text-[#827379] text-[11px]">Type or click to reflect</span>
+                <span className="text-[#827379] text-[11px]">Type / or click to reflect</span>
               </div>
-
               <span className="text-[10px] text-[#4a6550] font-mono">
                 Firestore Isolated • UID: {user.uid.slice(0, 6)}...
               </span>
             </div>
           </div>
 
-          {/* Slash Command Picker Popup */}
-          {showSlashMenu && (
-            <div className="mb-6 p-4 rounded-xl bg-[#f5f3f0] border border-[#d4c2c9] shadow-md flex flex-col gap-2 animate-in fade-in">
-              <div className="flex items-center justify-between pb-2 border-b border-[#d4c2c9]/30">
-                <span className="text-xs font-semibold text-[#1b1c1a] flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-[#854c6c]" />
-                  Gemini Notebook Companion
-                </span>
-                <button
-                  onClick={() => setShowSlashMenu(false)}
-                  className="text-[#504349] hover:text-[#1b1c1a] p-1 rounded cursor-pointer"
-                  type="button"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-                <button
-                  onClick={() => handleInvokeCompanion('/gem')}
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white hover:bg-[#eae8e5] text-left transition-colors border border-[#d4c2c9]/30 cursor-pointer"
-                  type="button"
-                >
-                  <span className="w-7 h-7 rounded-lg bg-[#f9b2d7] text-[#784160] flex items-center justify-center text-xs font-bold font-mono">
-                    /gem
-                  </span>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-semibold text-[#1b1c1a]">Reflective Companion</span>
-                    <span className="text-[11px] text-[#504349]">Synthesize thoughts &amp; patterns</span>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => handleInvokeCompanion('/summarise')}
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white hover:bg-[#eae8e5] text-left transition-colors border border-[#d4c2c9]/30 cursor-pointer"
-                  type="button"
-                >
-                  <span className="w-7 h-7 rounded-lg bg-[#cbe8ef] text-[#021f24] flex items-center justify-center text-xs font-bold font-mono">
-                    /sum
-                  </span>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-semibold text-[#1b1c1a]">Condense Breakthrough</span>
-                    <span className="text-[11px] text-[#504349]">2-3 sentence strategic essence</span>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => handleInvokeCompanion('/prompt')}
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white hover:bg-[#eae8e5] text-left transition-colors border border-[#d4c2c9]/30 cursor-pointer"
-                  type="button"
-                >
-                  <span className="w-7 h-7 rounded-lg bg-[#ccead0] text-[#062010] flex items-center justify-center text-xs font-bold font-mono">
-                    /prm
-                  </span>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-semibold text-[#1b1c1a]">Catalytic Question</span>
-                    <span className="text-[11px] text-[#504349]">Unblock deep philosophical angles</span>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => handleInvokeCompanion('/quotes')}
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white hover:bg-[#eae8e5] text-left transition-colors border border-[#d4c2c9]/30 cursor-pointer"
-                  type="button"
-                >
-                  <span className="w-7 h-7 rounded-lg bg-[#f5f3f0] text-[#504349] flex items-center justify-center text-xs font-bold border border-[#d4c2c9] font-mono">
-                    /quo
-                  </span>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-semibold text-[#1b1c1a]">Resonant Citations</span>
-                    <span className="text-[11px] text-[#504349]">Classic design &amp; stoic wisdom</span>
-                  </div>
-                </button>
-              </div>
-
-              <div className="pt-2 border-t border-[#d4c2c9]/30 flex items-center justify-between">
-                <button
-                  onClick={() => {
-                    setShowSlashMenu(false);
-                    setShowCustomPromptModal(true);
-                  }}
-                  className="text-xs text-[#854c6c] hover:underline flex items-center gap-1.5 font-medium cursor-pointer"
-                  type="button"
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  Ask specific question about this entry...
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Custom Prompt Dialog */}
           {showCustomPromptModal && (
             <div className="mb-6 p-4 rounded-xl bg-[#f5f3f0] border border-[#854c6c]/40 shadow-md animate-in fade-in">
-              <span className="text-xs font-semibold text-[#1b1c1a] block mb-2">
-                Inquire into your thoughts with Gemini
-              </span>
+              <span className="text-xs font-semibold text-[#1b1c1a] block mb-2">Inquire into your thoughts with Gemini</span>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -474,11 +395,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
                   onChange={(e) => setCustomPromptInput(e.target.value)}
                   placeholder="e.g. How does this connect with my ideas on spatial simplicity?"
                   className="flex-1 px-3 py-2 text-xs rounded-lg bg-white border border-[#d4c2c9] focus:outline-none focus:ring-1 focus:ring-[#854c6c]"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && customPromptInput.trim()) {
-                      handleInvokeCompanion('/ask', customPromptInput);
-                    }
-                  }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && customPromptInput.trim()) handleInvokeCompanion('/ask', customPromptInput); }}
                 />
                 <button
                   onClick={() => handleInvokeCompanion('/ask', customPromptInput)}
@@ -499,35 +416,27 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
             </div>
           )}
 
-          {/* Loading Indicator for AI Companion */}
+          {/* Loading */}
           {companionLoading && (
             <div className="my-6 p-4 rounded-xl bg-[#f5f3f0] border border-[#f9b2d7] flex items-center gap-3">
               <span className="w-4 h-4 border-2 border-[#854c6c] border-t-transparent rounded-full animate-spin" />
               <div className="flex flex-col">
                 <span className="text-xs font-semibold text-[#1b1c1a]">Contemplating notebook entry...</span>
-                <span className="text-[11px] text-[#504349]">
-                  Executing server-side fallback ladder (gemini-3.6-flash → gemini-3.1-flash-lite)
-                </span>
+                <span className="text-[11px] text-[#504349]">Executing server-side fallback ladder</span>
               </div>
             </div>
           )}
 
-          {/* Existing Margin Notes Section (Inside Paper Leaf) */}
+          {/* Margin Notes */}
           {marginNotes.length > 0 && (
             <div className="my-6 p-4 rounded-xl bg-[#f5f3f0]/80 border-l-3 border-[#854c6c] space-y-2">
-              <span className="text-[10px] font-semibold text-[#854c6c] uppercase tracking-wider block">
-                Margin Notes &amp; Synapses
-              </span>
+              <span className="text-[10px] font-semibold text-[#854c6c] uppercase tracking-wider block">Margin Notes & Synapses</span>
               {marginNotes.map((note, idx) => (
                 <div key={idx} className="text-xs text-[#504349] font-serif italic flex items-start justify-between gap-3">
                   <span>• {note}</span>
                   <button
-                    onClick={() => {
-                      const next = marginNotes.filter((_, i) => i !== idx);
-                      setMarginNotes(next);
-                    }}
+                    onClick={() => setMarginNotes(marginNotes.filter((_, i) => i !== idx))}
                     className="text-[#827379] hover:text-[#ba1a1a] p-0.5 cursor-pointer shrink-0"
-                    title="Remove note"
                     type="button"
                   >
                     <X className="w-3 h-3" />
@@ -537,95 +446,63 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
             </div>
           )}
 
-          {/* Tags & Taxonomy */}
-          <div className="pt-6 border-t border-[#efeeeb] flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-2">
-              {tags.map((t, idx) => (
-                <span
-                  key={idx}
-                  className="px-2.5 py-1 rounded-full bg-[#efeeeb] text-xs text-[#504349] font-medium flex items-center gap-1.5"
-                >
-                  #{t}
-                  <button
-                    onClick={() => setTags(tags.filter((_, i) => i !== idx))}
-                    className="hover:text-[#ba1a1a] cursor-pointer"
-                    type="button"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
-              <button
-                onClick={() => {
-                  const newTag = prompt('Add tag name:');
-                  if (newTag && newTag.trim() && !tags.includes(newTag.trim())) {
-                    setTags([...tags, newTag.trim()]);
-                  }
-                }}
-                className="px-2.5 py-1 rounded-full border border-dashed border-[#d4c2c9] text-xs text-[#504349] hover:bg-[#efeeeb] transition-colors cursor-pointer flex items-center gap-1"
-                type="button"
-              >
-                <Plus className="w-3 h-3" />
-                <span>Add tag</span>
-              </button>
-            </div>
+          {/* Tags */}
+          <div className="pt-6 border-t border-[#efeeeb] flex flex-wrap items-center gap-2">
+            {tags.map((t, idx) => (
+              <span key={idx} className="px-2.5 py-1 rounded-full bg-[#efeeeb] text-xs text-[#504349] font-medium flex items-center gap-1.5">
+                #{t}
+                <button onClick={() => setTags(tags.filter((_, i) => i !== idx))} className="hover:text-[#ba1a1a] cursor-pointer" type="button">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+            <button
+              onClick={() => {
+                const newTag = prompt('Add tag name:');
+                if (newTag && newTag.trim() && !tags.includes(newTag.trim())) setTags([...tags, newTag.trim()]);
+              }}
+              className="px-2.5 py-1 rounded-full border border-dashed border-[#d4c2c9] text-xs text-[#504349] hover:bg-[#efeeeb] transition-colors cursor-pointer flex items-center gap-1"
+              type="button"
+            >
+              <Plus className="w-3 h-3" />
+              <span>Add tag</span>
+            </button>
           </div>
         </article>
 
-        {/* Sidecar Leaf Column (Image 6 design) - Shown when companion reflection is active */}
+        {/* Sidecar */}
         {activeInteraction && !isFocusMode && (
           <aside className="lg:col-span-4 flex flex-col gap-4 animate-in fade-in slide-in-from-right-3">
             <div className="p-6 rounded-2xl bg-[#f5f3f0] border border-[#d4c2c9] shadow-xs relative">
               <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#d4c2c9]/40">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#854c6c]" />
-                  <span className="text-xs font-semibold text-[#1b1c1a]">
-                    Gemini Reflection
-                  </span>
+                  <span className="text-xs font-semibold text-[#1b1c1a]">Gemini Reflection</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-[#504349] font-mono px-2 py-0.5 rounded bg-white border border-[#d4c2c9]/30">
-                    {activeInteraction.modelUsed}
-                  </span>
-                  <button
-                    onClick={() => setActiveInteraction(null)}
-                    className="text-[#504349] hover:text-[#1b1c1a] p-1 rounded cursor-pointer"
-                    type="button"
-                  >
+                  <span className="text-[10px] text-[#504349] font-mono px-2 py-0.5 rounded bg-white border border-[#d4c2c9]/30">{activeInteraction.modelUsed}</span>
+                  <button onClick={() => setActiveInteraction(null)} className="text-[#504349] hover:text-[#1b1c1a] p-1 rounded cursor-pointer" type="button">
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
-
-              <span className="text-[11px] text-[#854c6c] font-semibold uppercase tracking-wider block mb-2 font-mono">
-                {activeInteraction.command} • Insight
-              </span>
-
-              <p className="font-serif text-sm text-[#1b1c1a] leading-relaxed italic mb-4">
-                "{activeInteraction.response}"
-              </p>
-
+              <span className="text-[11px] text-[#854c6c] font-semibold uppercase tracking-wider block mb-2 font-mono">{activeInteraction.command} • Insight</span>
+              <p className="font-serif text-sm text-[#1b1c1a] leading-relaxed italic mb-4">"{activeInteraction.response}"</p>
               {activeInteraction.suggestion && (
                 <div className="p-3 rounded-xl bg-white/70 border border-[#d4c2c9]/40 mb-4">
-                  <span className="text-[10px] text-[#4a6550] uppercase tracking-wider font-semibold block mb-1">
-                    Catalytic Question
-                  </span>
-                  <p className="text-xs text-[#504349] font-medium leading-normal">
-                    {activeInteraction.suggestion}
-                  </p>
+                  <span className="text-[10px] text-[#4a6550] uppercase tracking-wider font-semibold block mb-1">Catalytic Question</span>
+                  <p className="text-xs text-[#504349] font-medium leading-normal">{activeInteraction.suggestion}</p>
                 </div>
               )}
-
               <div className="flex flex-col gap-2 pt-2 border-t border-[#d4c2c9]/30">
                 <button
                   onClick={() => handleInsertMarginNote(activeInteraction.response)}
-                  className="w-full py-2 px-3 rounded-xl bg-white hover:bg-[#efeeeb] text-xs font-semibold text-[#1b1c1a] border border-[#d4c2c9]/50 transition-colors shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full py-2 px-3 rounded-xl bg-white hover:bg-[#efeeeb] text-xs font-semibold text-[#1b1c1a] border border-[#d4c2c9]/50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                   type="button"
                 >
                   <Plus className="w-3.5 h-3.5 text-[#854c6c]" />
                   <span>Insert as margin note</span>
                 </button>
-
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleInvokeCompanion('/summarise')}
@@ -637,7 +514,6 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
                   <button
                     onClick={() => handleCopyReflection(activeInteraction.response)}
                     className="p-2 rounded-xl bg-white hover:bg-[#efeeeb] border border-[#d4c2c9]/40 text-[#504349] transition-colors cursor-pointer"
-                    title="Copy reflection"
                     type="button"
                   >
                     {copiedId ? <Check className="w-3.5 h-3.5 text-[#4a6550]" /> : <Copy className="w-3.5 h-3.5" />}
@@ -649,7 +525,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
         )}
       </div>
 
-      {/* Floating Audio Capture / Speak Button as in Image 1.png */}
+      {/* Floating Speak Button */}
       <div className="fixed bottom-8 right-8 z-40">
         <button
           onClick={handleToggleSpeak}
@@ -660,18 +536,9 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({
           }`}
           type="button"
         >
-          {audioRecording ? (
-            <>
-              <Mic className="w-4 h-4 text-white animate-bounce" />
-              <span>Recording Musings...</span>
-              <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-            </>
-          ) : (
-            <>
-              <Mic className="w-4 h-4 text-[#854c6c]" />
-              <span>Speak to Journal</span>
-            </>
-          )}
+          <Mic className={`w-4 h-4 ${audioRecording ? 'text-white animate-bounce' : 'text-[#854c6c]'}`} />
+          <span>{audioRecording ? 'Recording Musings...' : 'Speak'}</span>
+          {audioRecording && <span className="w-2 h-2 rounded-full bg-white animate-ping" />}
         </button>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { signInWithGoogle } from '../../lib/firebase/client';
 import type { UserProfile } from '../../types';
-import { ShieldCheck, Key, AlertCircle, Sparkles } from 'lucide-react';
+import { ShieldCheck, AlertCircle } from 'lucide-react';
 
 interface LandingPageProps {
   onAuthenticated: (user: UserProfile) => void;
@@ -43,9 +43,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onAuthenticated }) => 
           <div className="relative group cursor-default">
             <div className="absolute -inset-2 rounded-full bg-[#cbe8ef]/40 blur-md opacity-60 group-hover:opacity-100 transition-opacity" />
             <div className="relative flex items-center justify-center h-12 w-auto px-4 gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[#f9b2d7] text-[#784160] flex items-center justify-center font-serif text-xl font-bold shadow-xs">
-                T
-              </div>
+              <img src="/assets/trace-logo.png" alt="Trace logo" className="w-10 h-10 rounded-xl object-contain shadow-xs" />
               <span className="font-serif text-3xl font-medium tracking-tight text-[#1b1c1a]">Trace</span>
             </div>
           </div>
@@ -64,7 +62,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onAuthenticated }) => 
             Your thinking space for decisions, breakthroughs &amp; work that actually matters.
           </h1>
           <p className="font-serif text-base sm:text-lg text-[#504349] max-w-[600px] mx-auto leading-relaxed italic">
-            Trace is a digital notebook crafted for contemplative minds. No noisy feeds, no chaotic dashboards—just the timeless tactility of unbleached archival paper paired with deliberate, silent synthesis.
+            Trace is a digital notebook crafted for contemplative minds.
           </p>
         </div>
 
@@ -117,27 +115,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onAuthenticated }) => 
               )}
             </button>
 
-            <div className="relative my-2 flex items-center justify-center">
-              <span className="h-[1px] w-full bg-[#e4e2df]" />
-              <span className="absolute bg-white px-3 text-[10px] text-[#504349] uppercase tracking-widest font-mono">or</span>
-            </div>
-
-            <button
-              onClick={handleGoogleSignIn}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#eae8e5]/60 hover:bg-[#eae8e5] text-[#504349] hover:text-[#1b1c1a] transition-all duration-200 border border-[#d4c2c9]/30 cursor-pointer"
-              type="button"
-            >
-              <Key className="w-3.5 h-3.5" />
-              <span className="text-xs font-semibold">Passkey or Single-Use Magic Link</span>
-            </button>
           </div>
 
           {/* Quiet Security Note */}
           <div className="mt-6 pt-5 flex items-center justify-center gap-2 text-center border-t border-[#eae8e5]/60">
             <ShieldCheck className="w-4 h-4 text-[#4a6550]" />
             <p className="text-xs text-[#504349]">
-              End-to-end encrypted • Isolated strictly by your Firebase UID
+              End-to-end encrypted
             </p>
           </div>
         </div>
@@ -146,9 +130,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onAuthenticated }) => 
         <footer className="w-full pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left border-t border-[#d4c2c9]/30">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#4a6550]" />
-            <p className="text-xs text-[#504349]">Archival integrity assured • Trace Private Journal</p>
+            {/* <p className="text-xs text-[#504349]">Archival integrity assured • Trace Private Journal</p> */}
           </div>
-          <nav className="flex items-center gap-6">
+          {/* <nav className="flex items-center gap-6">
             <button onClick={() => alert('Trace Privacy Manifesto: Your thoughts never train AI models.')} className="text-xs text-[#504349] hover:text-[#1b1c1a] transition-colors cursor-pointer" type="button">
               Privacy Manifesto
             </button>
@@ -158,7 +142,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onAuthenticated }) => 
             <button onClick={() => alert('Data Isolation: Encrypted with personal tenant UID boundaries.')} className="text-xs text-[#504349] hover:text-[#1b1c1a] transition-colors cursor-pointer" type="button">
               Data Isolation
             </button>
-          </nav>
+          </nav> */}
         </footer>
       </div>
     </div>

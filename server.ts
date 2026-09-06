@@ -4,7 +4,8 @@ import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
 
-dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '..', '.env') });
 
 const app = express();
 const PORT = 3000;
@@ -25,8 +26,6 @@ app.get('/api/health', (_req: Request, res: Response) => {
 
 // Resilient Gemini Model Fallback Ladder
 const GEMINI_MODELS = [
-  'gemini-3.6-flash',
-  'gemini-3.1-flash-lite',
   'gemini-flash-latest',
   'gemini-3.7-flash',
 ];
@@ -124,13 +123,12 @@ Respond directly to the command:
     });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'AI Companion generation unavailable';
-    console.warn('Companion generation error, providing structured fallback:', msg);
-    res.json({
-      ok: true,
-      response: `You noted feeling focused on intentional constraints in "${currentTitle}". Taking time to set tangible boundaries allows ideas to mature quietly before entering the rush of execution.`,
-      modelUsed: 'local-contemplative-engine',
-      marginNote: 'Synthesis: Restraint creates space for genuine depth.',
-      tags: ['Deliberate Pacing', 'Quiet Discipline'],
+    console.warn('Companion generation error:', msg);
+    res.status(503).json({
+      ok: false,
+      error: msg.includes('not configured')
+        ? 'GEMINI_API_KEY is not configured. Add it to TraceAI/.env or the workspace .env and restart the server.'
+        : 'Gemini rejected the request.',
     });
   }
 });
