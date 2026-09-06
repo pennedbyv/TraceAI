@@ -3,6 +3,7 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
   signOut as fbSignOut,
   onAuthStateChanged,
   type User as FirebaseUser,
@@ -51,10 +52,11 @@ export async function signInWithGoogle(): Promise<UserProfile> {
     throw new Error('Google authentication is not configured. Add the VITE_FIREBASE_* values to .env and restart the app.');
   }
 
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'consent select_account' });
+  provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
+
   try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'consent select_account' });
-      provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       const credential = GoogleAuthProvider.credentialFromResult(result);
@@ -70,8 +72,25 @@ export async function signInWithGoogle(): Promise<UserProfile> {
   } catch (error: unknown) {
     const err = error as { code?: string; message?: string };
     console.warn('Firebase popup sign-in encountered an issue:', err.code, err.message);
-    if (err.code === 'auth/popup-closed-by-user') {
-      throw new Error('Sign-in was closed before completion. Click Continue with Google to try again.');
+    if (
+      err.code === 'auth/popup-closed-by-user' ||
+      err.code === 'auth/popup-blocked' ||
+      err.code === 'auth/cancelled-popup-request'
+    ) {
+      // Some browsers close the OAuth popup before Firebase resolves the promise.
+      // Redirect authentication completes the same flow without relying on popup state.
+      try {
+        await signInWithRedirect(auth, provider);
+        return await new Promise<UserProfile>(() => undefined);
+      } catch (redirectError: unknown) {
+        const redirectMessage = redirectError instanceof Error
+          ? redirectError.message
+          : 'Redirect sign-in failed.';
+        throw new Error(redirectMessage);
+      }
+    }
+    if (err.code === 'auth/unauthorized-domain') {
+      throw new Error('This site is not authorized in Firebase Authentication. Add localhost to Firebase Console > Authentication > Settings > Authorized domains.');
     }
     throw new Error(err.message || 'Google sign-in failed. Check Firebase Authorized Domains and Google provider settings.');
   }
