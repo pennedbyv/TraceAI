@@ -44,8 +44,12 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
   const [audioRecording, setAudioRecording] = useState(false);
   const [saveBanner, setSaveBanner] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState(false);
-
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | null>(null);
   const [showPinPicker, setShowPinPicker] = useState(false);
+  const isFirstRender = useRef(true);
+
+  const recognitionRef = useRef<any>(null);
+  const [interimText, setInterimText] = useState('');
 
   const contentRef = useRef<HTMLTextAreaElement>(null);
 
@@ -56,12 +60,19 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
     setTags(entry.tags || []);
     setMarginNotes(entry.marginNotes || []);
     setActiveInteraction(null);
+    isFirstRender.current = true;
   }, [entry.id]);
 
   const words = content.trim() ? content.trim().split(/\s+/).length : 0;
   const readTime = Math.max(1, Math.ceil(words / 220));
 
   useEffect(() => {
+    // Skip auto-save on initial mount
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    setSaveStatus('saving');
     const timer = setTimeout(() => {
       onSaveEntry({
         ...entry,
@@ -74,6 +85,8 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
         readingTimeMinutes: readTime,
         updatedAt: new Date().toISOString(),
       });
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus(null), 2000);
     }, 800);
     return () => clearTimeout(timer);
   }, [title, content, category, tags, marginNotes]);
@@ -128,8 +141,21 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
 
   const openMenu = () => {
     if (contentRef.current) {
-      const rect = contentRef.current.getBoundingClientRect();
-      setMenuPos({ top: rect.top + window.scrollY + 40, left: rect.left + window.scrollX });
+      const editor = contentRef.current;
+      const rect = editor.getBoundingClientRect();
+      const lineHeight = Number.parseFloat(window.getComputedStyle(editor).lineHeight) || 28;
+      const beforeCursor = editor.value.slice(0, editor.selectionStart);
+      const lineNumber = beforeCursor.split('\n').length - 1;
+      const currentLine = beforeCursor.split('\n').pop() || '';
+      const fontSize = Number.parseFloat(window.getComputedStyle(editor).fontSize) || 20;
+      const estimatedCursorX = currentLine.length * fontSize * 0.48;
+      const menuHeight = 360;
+      const caretTop = rect.top + 16 + (lineNumber * lineHeight) - editor.scrollTop + lineHeight;
+      const preferredTop = caretTop + 12;
+      const top = Math.min(preferredTop, Math.max(12, window.innerHeight - menuHeight));
+      const preferredLeft = rect.left + 24 + estimatedCursorX - editor.scrollLeft;
+      const left = Math.min(preferredLeft, Math.max(12, window.innerWidth - 300));
+      setMenuPos({ top, left });
     }
     setShowSlashMenu(true);
   };
@@ -204,6 +230,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
         suggestion: result.suggestion,
       };
       setContent((c) => `${c.trimEnd()}\n\n[Gemini ${cmd}]\n${result.response}`.trimStart());
+      setTags((currentTags) => currentTags.includes(cmd) ? currentTags : [...currentTags, cmd]);
       setActiveInteraction(newInteraction);
       await saveCompanionInteraction(user.uid, newInteraction);
       setSaveBanner(`Companion reflection generated via ${result.modelUsed}`);
@@ -277,16 +304,55 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
   };
 
   const handleToggleSpeak = () => {
-    if (audioRecording) {
-      setAudioRecording(false);
-      setContent((prev) => prev + (prev ? '\n\n' : '') + '[Voice Reflection • 09:42 AM]: Observed how physical spatial constraints preserve focus more reliably than willpower alone.');
-    } else {
-      setAudioRecording(true);
-      setTimeout(() => {
-        setAudioRecording(false);
-        setContent((prev) => prev + (prev ? '\n\n' : '') + '[Audio Capture Decoded]: The mind requires deliberate pauses to synthesize architectural trade-offs.');
-      }, 3500);
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setSaveBanner('Speech recognition not supported in this browser.');
+      setTimeout(() => setSaveBanner(null), 3000);
+      return;
     }
+
+    if (audioRecording) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognitionRef.current = recognition;
+
+    recognition.onstart = () => setAudioRecording(true);
+
+    recognition.onresult = (event: any) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) finalTranscript += t + ' ';
+        else interimTranscript += t;
+      }
+      if (finalTranscript) {
+        setContent((prev) => (prev.trim() ? prev.trimEnd() + ' ' : '') + finalTranscript.trim());
+      }
+      setInterimText(interimTranscript);
+    };
+
+    recognition.onerror = (event: any) => {
+      if (event.error !== 'aborted') {
+        setSaveBanner(`Mic error: ${event.error}`);
+        setTimeout(() => setSaveBanner(null), 3000);
+      }
+      setAudioRecording(false);
+      setInterimText('');
+    };
+
+    recognition.onend = () => {
+      setAudioRecording(false);
+      setInterimText('');
+    };
+
+    recognition.start();
   };
 
   const visibleCommands = slashCommands.filter(
@@ -357,6 +423,18 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
               <span className="font-mono text-[11px]">{words} words</span>
               <span>•</span>
               <span className="font-mono text-[11px]">~{readTime} min read</span>
+              {saveStatus === 'saving' && (
+                <span className="flex items-center gap-1 text-[#827379] text-[11px]">
+                  <span className="w-3 h-3 border border-[#827379] border-t-transparent rounded-full animate-spin" />
+                  Saving...
+                </span>
+              )}
+              {saveStatus === 'saved' && (
+                <span className="flex items-center gap-1 text-[#4a6550] text-[11px] font-medium">
+                  <Check className="w-3 h-3" />
+                  Saved
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2.5">
               <select
@@ -385,9 +463,9 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
               {entry.pinType && PIN_TYPES.find(p => p.type === entry.pinType) && (
                 <span>{PIN_TYPES.find(p => p.type === entry.pinType)!.emoji}</span>
               )}
-              <span>{entry.location || 'No location set'}</span>
-              <span>•</span>
-              <span>{entry.weather || 'Fog clearing, 59°F • 09:14 AM'}</span>
+              {entry.location && <span>{entry.location}</span>}
+              {entry.location && entry.weather && <span>•</span>}
+              {entry.weather && <span>{entry.weather}</span>}
             </div>
             <div className="relative">
               <button
@@ -570,7 +648,12 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
                   </button>
                 </div>
               </div>
-              <span className="text-[11px] text-[#854c6c] font-semibold uppercase tracking-wider block mb-2 font-mono">{activeInteraction.command} • Insight</span>
+              <div className="mb-3 flex items-center gap-2">
+                <span className="rounded-full bg-[#f9b2d7] px-2.5 py-1 text-[11px] font-semibold text-[#784160] font-mono">
+                  {activeInteraction.command}
+                </span>
+                <span className="text-[10px] text-[#827379] uppercase tracking-wider font-semibold">Insight</span>
+              </div>
               <p className="font-serif text-sm text-[#1b1c1a] leading-relaxed italic mb-4">"{activeInteraction.response}"</p>
               {activeInteraction.suggestion && (
                 <div className="p-3 rounded-xl bg-white/70 border border-[#d4c2c9]/40 mb-4">
@@ -610,18 +693,23 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
       </div>
 
       {/* Floating Speak Button */}
-      <div className="fixed bottom-8 right-8 z-40">
+      <div className="fixed bottom-8 right-8 z-40 flex flex-col items-end gap-2">
+        {audioRecording && interimText && (
+          <div className="max-w-xs px-3 py-2 rounded-xl bg-white border border-[#d4c2c9] shadow text-xs text-[#504349] font-serif italic animate-in fade-in">
+            {interimText}
+          </div>
+        )}
         <button
           onClick={handleToggleSpeak}
           className={`flex items-center gap-2.5 px-5 py-3 rounded-full text-xs font-semibold transition-all duration-200 shadow-lg cursor-pointer ${
             audioRecording
-              ? 'bg-[#ba1a1a] text-white animate-pulse ring-4 ring-[#ffdad6]'
+              ? 'bg-[#ba1a1a] text-white ring-4 ring-[#ffdad6]'
               : 'bg-white hover:bg-[#f5f3f0] text-[#1b1c1a] border border-[#d4c2c9] hover:scale-105 shadow-[0_4px_16px_rgba(0,0,0,0.08)]'
           }`}
           type="button"
         >
           <Mic className={`w-4 h-4 ${audioRecording ? 'text-white animate-bounce' : 'text-[#854c6c]'}`} />
-          <span>{audioRecording ? 'Recording Musings...' : 'Speak'}</span>
+          <span>{audioRecording ? 'Tap to stop' : 'Speak'}</span>
           {audioRecording && <span className="w-2 h-2 rounded-full bg-white animate-ping" />}
         </button>
       </div>

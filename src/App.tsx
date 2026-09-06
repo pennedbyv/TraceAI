@@ -5,7 +5,6 @@ import {
   getUserEntries,
   saveJournalEntry,
   deleteJournalEntry,
-  INITIAL_SAMPLE_ENTRY,
 } from './lib/firestore/service';
 import { LandingPage } from './components/auth/LandingPage';
 import { Sidebar } from './components/layout/Sidebar';
@@ -16,6 +15,7 @@ import { CalendarView } from './components/views/CalendarView';
 import { MemoriesView } from './components/views/MemoriesView';
 import { PlacesView } from './components/views/PlacesView';
 import { SettingsView } from './components/views/SettingsView';
+import { FirstEntrySetup } from './components/journal/FirstEntrySetup';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -28,6 +28,7 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'work' | 'personal'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [syncStatus, setSyncStatus] = useState<'synced' | 'saving' | 'error'>('synced');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Listen to Authentication lifecycle
   useEffect(() => {
@@ -38,7 +39,7 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // When user is authenticated, load their isolated Firestore entries
+  // When user is authenticated, load their isolated Realtime Database entries
   useEffect(() => {
     if (currentUser) {
       loadUserVault(currentUser.uid);
@@ -56,16 +57,7 @@ export default function App() {
       if (loaded.length > 0) {
         setActiveEntry(loaded[0]);
       } else {
-        const freshEntry: JournalEntry = {
-          ...INITIAL_SAMPLE_ENTRY,
-          id: 'entry_' + Date.now(),
-          userId: uid,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        await saveJournalEntry(uid, freshEntry);
-        setEntries([freshEntry]);
-        setActiveEntry(freshEntry);
+        setActiveEntry(null);
       }
       setSyncStatus('synced');
     } catch (err) {
@@ -74,34 +66,77 @@ export default function App() {
     }
   };
 
+  const handleNewEntryWithSetup = async (opts: { category: 'work' | 'personal'; pinLocation: boolean; pinType: JournalEntry['pinType'] }) => {
+    if (!currentUser) return;
+    const newEntry: JournalEntry = {
+      id: 'entry_' + Date.now(),
+      userId: currentUser.uid,
+      title: '',
+      content: '',
+      category: opts.category,
+      tags: [],
+      wordCount: 0,
+      readingTimeMinutes: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Navigate immediately — don't wait for the database write
+    setEntries((prev) => [newEntry, ...prev]);
+    setActiveEntry(newEntry);
+    setActiveSection('write');
+
+    // Save in background
+    setSyncStatus('saving');
+    saveJournalEntry(currentUser.uid, newEntry)
+      .then(() => setSyncStatus('synced'))
+      .catch(() => setSyncStatus('error'));
+
+    // Pin GPS in background if requested
+    if (opts.pinLocation && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`);
+          const data = await res.json();
+          const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || 'Unknown';
+          const state = data.address?.state || '';
+          const country = data.address?.country_code?.toUpperCase() || '';
+          const locationStr = [city, state, country].filter(Boolean).join(', ');
+          const withLocation: JournalEntry = {
+            ...newEntry,
+            location: locationStr,
+            coordinates: { lat: pos.coords.latitude, lng: pos.coords.longitude },
+            pinType: opts.pinType,
+          };
+          await saveJournalEntry(currentUser.uid, withLocation);
+          setEntries((prev) => prev.map((e) => e.id === withLocation.id ? withLocation : e));
+          setActiveEntry(withLocation);
+        } catch { /* silent */ }
+      }, () => { /* silent */ }, { enableHighAccuracy: true, timeout: 10000 });
+    }
+  };
+
   const handleNewEntry = async () => {
     if (!currentUser) return;
     const newEntry: JournalEntry = {
       id: 'entry_' + Date.now(),
       userId: currentUser.uid,
-      title: 'Untitled Reflection',
+      title: '',
       content: '',
       category: selectedCategory === 'personal' ? 'personal' : 'work',
-      tags: [selectedCategory === 'personal' ? 'Personal' : 'Work'],
+      tags: [],
       wordCount: 0,
       readingTimeMinutes: 1,
-      location: 'Mission District, SF',
-      weather: 'Clear dusk, 62°F',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-
+    setEntries((prev) => [newEntry, ...prev]);
+    setActiveEntry(newEntry);
+    setActiveSection('write');
     setSyncStatus('saving');
-    try {
-      await saveJournalEntry(currentUser.uid, newEntry);
-      setEntries((prev) => [newEntry, ...prev]);
-      setActiveEntry(newEntry);
-      setActiveSection('write');
-      setSyncStatus('synced');
-    } catch (err) {
-      console.error('Failed to create entry:', err);
-      setSyncStatus('error');
-    }
+    saveJournalEntry(currentUser.uid, newEntry)
+      .then(() => setSyncStatus('synced'))
+      .catch(() => setSyncStatus('error'));
   };
 
   const handleSaveEntry = async (updated: JournalEntry) => {
@@ -199,17 +234,21 @@ export default function App() {
         workEntriesCount={workEntriesCount}
         personalEntriesCount={personalEntriesCount}
         streakCount={streakCount}
+        collapsed={sidebarCollapsed}
       />
 
       {/* Main Sanctuary Canvas */}
-      <main className="flex-1 ml-[360px] flex flex-col min-h-screen max-xl:ml-72 max-md:ml-0">
+      <main className={`flex min-h-screen flex-1 flex-col transition-[margin] duration-200 max-md:ml-0 ${sidebarCollapsed ? 'ml-20' : 'ml-[360px] max-xl:ml-72'}`}>
         <Header
-          selectedCategory={selectedCategory}
-          onSelectCategory={(cat) => setSelectedCategory(cat)}
           searchQuery={searchQuery}
-          onSearchChange={(q) => setSearchQuery(q)}
+          onSearchChange={(query) => {
+            setSearchQuery(query);
+            if (query.trim()) setActiveSection('search');
+          }}
           syncStatus={syncStatus}
           onOpenSearchModal={() => setActiveSection('search')}
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebar={() => setSidebarCollapsed((collapsed) => !collapsed)}
         />
 
         <div className="flex-1 pb-16">
@@ -224,19 +263,7 @@ export default function App() {
           )}
 
           {activeSection === 'write' && !activeEntry && (
-            <div className="max-w-md mx-auto my-24 text-center p-8 bg-white rounded-xl border border-[#eae8e5]">
-              <h3 className="font-serif text-xl mb-2">No active reflection</h3>
-              <p className="text-xs text-[#504349] mb-4">
-                Begin a new notebook leaf in your private vault.
-              </p>
-              <button
-                onClick={handleNewEntry}
-                className="px-4 py-2 rounded-lg bg-[#f9b2d7] text-[#784160] text-xs font-semibold"
-                type="button"
-              >
-                Create First Entry
-              </button>
-            </div>
+            <FirstEntrySetup onCreateEntry={handleNewEntryWithSetup} />
           )}
 
           {activeSection === 'search' && (

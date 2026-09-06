@@ -1,73 +1,45 @@
 import React from 'react';
-import { Search, Share2, Loader2, AlertCircle, Bell } from 'lucide-react';
+import { Search, Share2, Loader2, AlertCircle, Bell, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 interface HeaderProps {
-  selectedCategory: 'all' | 'work' | 'personal';
-  onSelectCategory: (cat: 'all' | 'work' | 'personal') => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   syncStatus: 'synced' | 'saving' | 'error';
   lastSavedText?: string;
   onOpenSearchModal: () => void;
+  sidebarCollapsed: boolean;
+  onToggleSidebar: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  selectedCategory,
-  onSelectCategory,
   searchQuery,
   onSearchChange,
   syncStatus,
   lastSavedText = 'All notes synced to private vault',
   onOpenSearchModal,
+  sidebarCollapsed,
+  onToggleSidebar,
 }) => {
   const syncLabel = syncStatus === 'saving'
-    ? 'Persisting to Firestore...'
+    ? 'Persisting to Realtime Database...'
     : syncStatus === 'error'
-      ? 'Firestore sync failed'
+      ? 'Realtime Database sync failed'
       : lastSavedText;
 
   return (
     <header className="sticky top-0 bg-[#f8f7f4]/92 backdrop-blur-md px-12 py-5 flex items-center justify-between z-40 border-b border-[#e3dedb] select-none max-xl:px-6 max-md:px-4">
-      <div className="flex items-center gap-8">
-        {/* Category switcher pills */}
-        <div className="flex items-center gap-1 p-1 bg-[#e7e4e1] rounded-full border border-[#d4c2c9]/25 shadow-2xs">
-          <button
-            onClick={() => onSelectCategory('all')}
-              className={`px-6 py-2 rounded-full text-base transition-all duration-150 cursor-pointer ${
-              selectedCategory === 'all'
-                ? 'bg-white text-[#1b1c1a] font-semibold shadow-xs'
-                : 'text-[#504349] hover:text-[#1b1c1a]'
-            }`}
-            type="button"
-          >
-              Work
-          </button>
-          <button
-            onClick={() => onSelectCategory('work')}
-              className={`px-6 py-2 rounded-full text-base transition-all duration-150 cursor-pointer ${
-              selectedCategory === 'work'
-                ? 'bg-white text-[#1b1c1a] font-semibold shadow-xs'
-                : 'text-[#504349] hover:text-[#1b1c1a]'
-            }`}
-            type="button"
-          >
-              Personal
-          </button>
-          <button
-            onClick={() => onSelectCategory('personal')}
-            className={`px-3 py-1 rounded-lg text-xs transition-all duration-150 cursor-pointer ${
-              selectedCategory === 'personal'
-                ? 'bg-white text-[#1b1c1a] font-semibold shadow-xs'
-                : 'text-[#504349] hover:text-[#1b1c1a]'
-            }`}
-            type="button"
-          >
-            Personal
-          </button>
-        </div>
-
+      <div className="flex min-w-0 items-center gap-4">
+        <button
+          onClick={onToggleSidebar}
+          className="shrink-0 rounded-xl border border-[#e3dedb] bg-white p-2.5 text-[#504349] transition-colors hover:text-[#1b1c1a]"
+          type="button"
+          title={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+          aria-label={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+        >
+          {sidebarCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+        </button>
         {/* Sync Status Badge */}
-        <div className="hidden sm:flex items-center gap-2 text-xs text-[#504349]">
+        <div className="hidden min-w-0 items-center gap-2 text-xs text-[#504349] sm:flex">
           {syncStatus === 'saving' ? (
             <Loader2 className="w-3.5 h-3.5 text-[#854c6c] animate-spin" />
           ) : syncStatus === 'error' ? (
@@ -75,7 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
           ) : (
             <span className="w-2 h-2 rounded-full bg-[#4a6550]" />
           )}
-          <span className="text-sm text-[#504349]">
+          <span className="truncate whitespace-nowrap text-sm text-[#504349]">
             {syncLabel}
           </span>
         </div>
@@ -83,14 +55,15 @@ export const Header: React.FC<HeaderProps> = ({
 
       <div className="flex items-center gap-4">
         {/* Search Bar */}
-        <div className="relative">
+        <div className="relative min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#827379]" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
+            onFocus={onOpenSearchModal}
             placeholder="Search entries"
-            className="pl-11 pr-14 py-3 rounded-2xl bg-[#eeece9] text-sm text-[#1b1c1a] placeholder:text-[#827379] focus:outline-none focus:ring-1 focus:ring-[#854c6c] focus:bg-white w-48 sm:w-72 transition-all border border-transparent focus:border-[#d4c2c9]"
+            className="w-[min(36vw,15rem)] rounded-xl border border-transparent bg-[#eeece9] py-2.5 pl-10 pr-12 text-sm text-[#1b1c1a] placeholder:text-[#827379] transition-all focus:border-[#d4c2c9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#854c6c] max-sm:w-[min(48vw,12rem)]"
           />
           <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-[#504349] bg-white px-1.5 py-0.5 rounded-md border border-[#d4c2c9]/40 shadow-2xs font-mono">
             ⌘K

@@ -1,17 +1,9 @@
-import {
-  collection,
-  doc,
-  setDoc,
-  getDocs,
-  deleteDoc,
-  query,
-  orderBy
-} from 'firebase/firestore';
-import { firestore } from '../firebase/client';
+import { get, ref, remove, set } from 'firebase/database';
+import { database } from '../firebase/client';
 import type { JournalEntry, CompanionInteraction } from '../../types';
 
 /**
- * Strips all undefined properties from objects to prevent Firestore write exceptions.
+ * Strips all undefined properties from objects before database writes.
  * OWASP & Payload Hygiene standard.
  */
 function sanitizePayload<T>(payload: T): T {
@@ -52,16 +44,16 @@ We do not need more notification chimes; we need more silent folios where ideas 
 };
 
 /**
- * Save or update a journal entry strictly isolated to the user's UID path:
- * users/{userId}/entries/{entryId}
+ * Save or update a journal entry strictly isolated to the user's UID path
+ * in Realtime Database: users/{userId}/entries/{entryId}.
  */
 export async function saveJournalEntry(userId: string, entry: JournalEntry): Promise<void> {
   if (!userId) {
     throw new Error('User identity UID is required to save private journal data.');
   }
 
-  if (!firestore) {
-    throw new Error('Firestore is not configured. Add the VITE_FIREBASE_* values and restart the app.');
+  if (!database) {
+    throw new Error('Realtime Database is not configured. Add the VITE_FIREBASE_* values and restart the app.');
   }
 
   const cleanEntry = sanitizePayload({
@@ -71,12 +63,12 @@ export async function saveJournalEntry(userId: string, entry: JournalEntry): Pro
   });
 
   try {
-    const entryRef = doc(firestore, 'users', userId, 'entries', entry.id);
-    await setDoc(entryRef, cleanEntry, { merge: true });
+    const entryRef = ref(database, `users/${userId}/entries/${entry.id}`);
+    await set(entryRef, cleanEntry);
     removeLocalEntry(userId, entry.id);
   } catch (err) {
-    console.error('Firestore journal write failed:', err);
-    throw new Error('Journal could not be saved to Firestore. Check your Firebase rules and connection.');
+    console.error('Realtime Database journal write failed:', err);
+    throw new Error('Journal could not be saved to Realtime Database. Check your Firebase rules and connection.');
   }
 }
 
@@ -86,32 +78,32 @@ export async function saveJournalEntry(userId: string, entry: JournalEntry): Pro
 export async function getUserEntries(userId: string): Promise<JournalEntry[]> {
   if (!userId) return [];
 
-  if (!firestore) {
-    throw new Error('Firestore is not configured. Add the VITE_FIREBASE_* values and restart the app.');
+  if (!database) {
+    throw new Error('Realtime Database is not configured. Add the VITE_FIREBASE_* values and restart the app.');
   }
 
   try {
-    const entriesCol = collection(firestore, 'users', userId, 'entries');
-    const q = query(entriesCol, orderBy('updatedAt', 'desc'));
-    const snapshot = await getDocs(q);
-    const list: JournalEntry[] = [];
-    snapshot.forEach((d) => {
-      list.push(d.data() as JournalEntry);
-    });
+    const snapshot = await get(ref(database, `users/${userId}/entries`));
+    const data = snapshot.val() as Record<string, JournalEntry> | null;
+    const remoteEntries = data ? Object.values(data) : [];
 
     // Recover drafts written by the previous local fallback into Firestore once.
     const localEntries = getLocalEntries(userId);
-    const remoteIds = new Set(list.map((entry) => entry.id));
+    const remoteIds = new Set(remoteEntries.map((entry) => entry.id));
     const entriesToMigrate = localEntries.filter((entry) => !remoteIds.has(entry.id));
     if (entriesToMigrate.length > 0) {
       await Promise.all(entriesToMigrate.map((entry) => saveJournalEntry(userId, entry)));
-      list.push(...entriesToMigrate);
     }
 
-    return list.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    const uniqueEntries = new Map<string, JournalEntry>();
+    [...remoteEntries, ...entriesToMigrate].forEach((entry) => uniqueEntries.set(entry.id, entry));
+    return [...uniqueEntries.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   } catch (err) {
-    console.error('Firestore journal query failed:', err);
-    throw new Error('Journal entries could not be loaded from Firestore. Check your Firebase rules and connection.');
+    console.error('Realtime Database journal query failed:', err);
+    const code = (err as { code?: string }).code;
+    throw new Error(code
+      ? `Realtime Database error (${code}). Check the database URL and rules.`
+      : 'Journal entries could not be loaded from Realtime Database. Check your Firebase rules and connection.');
   }
 }
 
@@ -137,7 +129,7 @@ function removeLocalEntry(userId: string, entryId: string): void {
 }
 
 /**
- * Save multi-turn Gemini companion interaction strictly under:
+ * Save multi-turn Gemini companion interaction under:
  * users/{userId}/interactions/{interactionId}
  */
 export async function saveCompanionInteraction(
@@ -152,13 +144,13 @@ export async function saveCompanionInteraction(
     timestamp: interaction.timestamp || new Date().toISOString(),
   });
 
-  if (firestore) {
+  if (database) {
     try {
-      const docRef = doc(firestore, 'users', userId, 'interactions', interaction.id);
-      await setDoc(docRef, cleanPayload, { merge: true });
+      const interactionRef = ref(database, `users/${userId}/interactions/${interaction.id}`);
+      await set(interactionRef, cleanPayload);
       return;
     } catch (err) {
-      console.warn('Firestore interaction write failed, using local store:', err);
+      console.warn('Realtime Database interaction write failed, using local store:', err);
     }
   }
 
@@ -189,12 +181,11 @@ export function getUserInteractions(userId: string): CompanionInteraction[] {
 export async function deleteJournalEntry(userId: string, entryId: string): Promise<void> {
   if (!userId || !entryId) return;
 
-  if (firestore) {
+  if (database) {
     try {
-      const docRef = doc(firestore, 'users', userId, 'entries', entryId);
-      await deleteDoc(docRef);
+      await remove(ref(database, `users/${userId}/entries/${entryId}`));
     } catch (err) {
-      console.warn('Firestore delete error:', err);
+      console.warn('Realtime Database delete error:', err);
     }
   }
 
@@ -209,6 +200,9 @@ export async function deleteJournalEntry(userId: string, entryId: string): Promi
  */
 export async function purgeAllUserData(userId: string): Promise<void> {
   if (!userId) return;
+  if (database) {
+    await remove(ref(database, `users/${userId}`));
+  }
   localStorage.removeItem(getLocalEntriesKey(userId));
   localStorage.removeItem(getLocalInteractionsKey(userId));
 }

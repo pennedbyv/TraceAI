@@ -9,7 +9,7 @@ import {
   type User as FirebaseUser,
   type Auth
 } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getDatabase, type Database } from 'firebase/database';
 import type { UserProfile } from '../../types';
 
 // Read client-side environment variables safely
@@ -20,6 +20,7 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
   appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || '',
 };
 
 export const isFirebaseConfigured = Boolean(
@@ -28,19 +29,19 @@ export const isFirebaseConfigured = Boolean(
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
-let firestore: Firestore | null = null;
+let database: Database | null = null;
 
 if (isFirebaseConfigured) {
   try {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
     auth = getAuth(app);
-    firestore = getFirestore(app);
+    database = getDatabase(app, firebaseConfig.databaseURL || `https://${firebaseConfig.projectId}-default-rtdb.firebaseio.com`);
   } catch (err) {
     console.warn('Failed to initialize Firebase with provided credentials:', err);
   }
 }
 
-export { auth, firestore };
+export { auth, database };
 
 const LOCAL_STORAGE_USER_KEY = 'trace_authenticated_user_session';
 
