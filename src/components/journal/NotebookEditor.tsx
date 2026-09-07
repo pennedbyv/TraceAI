@@ -153,12 +153,13 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
       const currentLine = beforeCursor.split('\n').pop() || '';
       const fontSize = Number.parseFloat(window.getComputedStyle(editor).fontSize) || 20;
       const estimatedCursorX = currentLine.length * fontSize * 0.48;
+      const menuWidth = Math.min(288, window.innerWidth - 24);
       const menuHeight = 360;
       const caretTop = rect.top + 16 + (lineNumber * lineHeight) - editor.scrollTop + lineHeight;
       const preferredTop = caretTop + 12;
       const top = Math.min(preferredTop, Math.max(12, window.innerHeight - menuHeight));
       const preferredLeft = rect.left + 24 + estimatedCursorX - editor.scrollLeft;
-      const left = Math.min(preferredLeft, Math.max(12, window.innerWidth - 300));
+      const left = Math.max(12, Math.min(preferredLeft, window.innerWidth - menuWidth - 12));
       setMenuPos({ top, left });
     }
     setShowSlashMenu(true);
@@ -378,7 +379,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
   visibleCommandsRef.current = visibleCommands;
 
   return (
-    <div className={`relative max-w-[1320px] mx-auto py-10 px-8 sm:px-12 transition-all duration-200 ${isFocusMode ? 'max-w-4xl' : ''}`}>
+    <div className={`relative min-w-0 max-w-[1320px] mx-auto py-5 px-3 sm:py-8 sm:px-6 lg:px-10 transition-all duration-200 ${isFocusMode ? 'max-w-4xl' : ''}`}>
 
       {onBack && (
         <button
@@ -402,7 +403,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
       {/* Slash Command Menu — fixed, escapes all overflow */}
       {showSlashMenu && visibleCommands.length > 0 && (
         <div
-          className="fixed z-[9999] w-72 rounded-2xl bg-white border border-[#e8e4e1] shadow-[0_8px_40px_rgba(43,33,36,0.18)] overflow-hidden"
+          className="fixed z-[9999] w-[min(18rem,calc(100vw-1.5rem))] rounded-2xl bg-white border border-[#e8e4e1] shadow-[0_8px_40px_rgba(43,33,36,0.18)] overflow-hidden"
           style={{ top: menuPos.top, left: menuPos.left }}
         >
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#efeeeb]">
@@ -439,11 +440,11 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Main Paper Leaf */}
-        <article className={`bg-[#fffafd] rounded-[22px] shadow-[0_18px_38px_rgba(43,33,36,0.08)] border border-[#f2dce5] p-6 sm:p-10 relative transition-all ${activeInteraction && !isFocusMode ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
+        <article className={`min-w-0 bg-[#fffafd] rounded-[22px] shadow-[0_18px_38px_rgba(43,33,36,0.08)] border border-[#f2dce5] p-4 sm:p-7 lg:p-10 relative transition-all ${activeInteraction && !isFocusMode ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
           <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#d4c2c9]/40 rounded-tr-2xl pointer-events-none" />
 
           {/* Metadata Strip */}
-          <div className="relative flex flex-wrap items-center justify-between gap-4 pb-6 mb-10">
+          <div className="relative flex flex-wrap items-center justify-between gap-3 pb-5 mb-7 sm:pb-6 sm:mb-10">
             <div className="flex items-center gap-3 text-xs text-[#504349]">
               <span className="font-serif italic text-sm font-semibold text-[#1b1c1a]">
                 {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
@@ -539,7 +540,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
             value={title}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
             placeholder="Title of your reflection..."
-            className="w-full border-b border-[#f1c7d9]/80 pb-2 font-serif text-3xl sm:text-4xl text-[#1b1c1a] font-normal tracking-tight placeholder:text-[#b45f82] focus:outline-none mb-5 leading-[1.05]"
+            className="w-full min-w-0 border-b border-[#f1c7d9]/80 pb-2 font-serif text-2xl sm:text-4xl text-[#1b1c1a] font-normal tracking-tight placeholder:text-[#b45f82] focus:outline-none mb-5 leading-[1.1]"
           />
 
           {/* Editor */}
@@ -550,10 +551,10 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleContentChange(e.target.value)}
               onKeyDown={handleEditorKeyDown}
               placeholder="Write freely. Type / to trigger commands..."
-              className="w-full resize-none bg-transparent font-serif text-lg leading-[1.8] text-[#1b1c1a] placeholder:text-[#b45f82] focus:outline-none selection:bg-[#f9b2d7]/40"
+              className="w-full max-w-full resize-none bg-transparent font-serif text-base sm:text-lg leading-[1.65] text-[#1b1c1a] caret-[#854c6c] placeholder:text-[#b45f82] focus:outline-none selection:bg-[#f9b2d7]/40"
               style={{
-                minHeight: '60vh',
-                backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent calc(1.8em - 1px), rgba(241, 199, 217, 0.55) 1.8em)',
+                minHeight: 'clamp(26rem, 60vh, 52rem)',
+                backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent calc(1.65em - 1px), rgba(241, 199, 217, 0.55) 1.65em)',
               }}
             />
             {/\[Gemini [^\]]+\]/.test(content) && (
@@ -565,8 +566,8 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
                 )}
               </div>
             )}
-            <div className="flex items-center justify-between pt-3 border-t border-[#efeeeb] text-xs">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-start justify-between gap-3 pt-3 border-t border-[#efeeeb] text-xs">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <button
                   onClick={() => {
                     if (showSlashMenu) {
@@ -583,7 +584,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
                 </button>
                 <span className="text-[#827379] text-[11px]">Type / or click to reflect</span>
               </div>
-              <span className="text-[10px] text-[#4a6550] font-mono">
+              <span className="max-w-full truncate text-[10px] text-[#4a6550] font-mono">
                 Firestore Isolated • UID: {user.uid.slice(0, 6)}...
               </span>
             </div>
