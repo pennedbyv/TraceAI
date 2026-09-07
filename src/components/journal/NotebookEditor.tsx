@@ -35,6 +35,8 @@ type JournalBlock = {
   kind: 'entry' | 'companion';
 };
 
+const JOURNAL_ENTRY_MARKER = '[Journal entry]';
+
 const getJournalBlocks = (value: string): JournalBlock[] => {
   const parts = value.split(/(\[Gemini [^\]]+\]|\[Journal entry\])/g);
   const blocks: JournalBlock[] = [];
@@ -49,7 +51,7 @@ const getJournalBlocks = (value: string): JournalBlock[] => {
       return;
     }
 
-    if (part === '[Journal entry]') {
+    if (part === JOURNAL_ENTRY_MARKER) {
       currentLabel = 'Journal entry';
       currentKind = 'entry';
       return;
@@ -63,6 +65,16 @@ const getJournalBlocks = (value: string): JournalBlock[] => {
   });
 
   return blocks;
+};
+
+const getEditableJournalSection = (value: string) => {
+  const markerIndex = value.lastIndexOf(JOURNAL_ENTRY_MARKER);
+  if (markerIndex < 0) return null;
+
+  return {
+    lockedContent: value.slice(0, markerIndex),
+    editableContent: value.slice(markerIndex + JOURNAL_ENTRY_MARKER.length).replace(/^\n/, ''),
+  };
 };
 
 const hasCompanionEdit = (previous: string, next: string): boolean => {
@@ -245,7 +257,8 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
     }
     setContent(nextContent);
     const cursorPosition = contentRef.current?.selectionStart ?? nextContent.length;
-    const textBeforeCursor = nextContent.slice(0, cursorPosition);
+    const editorValue = getEditableJournalSection(nextContent)?.editableContent ?? nextContent;
+    const textBeforeCursor = editorValue.slice(0, cursorPosition);
     const tokenMatch = textBeforeCursor.match(/(?:^|\s)(\/[^\s]*)$/);
     const currentToken = tokenMatch?.[1] || '';
     if (currentToken.startsWith('/') && currentToken.length <= 20) {
@@ -290,10 +303,15 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
       event.preventDefault();
       const selectedCommand = visibleCommandsRef.current[slashSelectedIndex].command;
       const range = slashTokenRangeRef.current;
-      const cursorPosition = contentRef.current?.selectionStart ?? content.length;
+      const currentSection = getEditableJournalSection(content);
+      const editorValue = currentSection?.editableContent ?? content;
+      const cursorPosition = contentRef.current?.selectionStart ?? editorValue.length;
       const start = range?.start ?? cursorPosition;
       const end = range?.end ?? cursorPosition;
-      const cleaned = `${content.slice(0, start)}${content.slice(end)}`.replace(/\n{3,}/g, '\n\n').trim();
+      const cleanedEditorValue = `${editorValue.slice(0, start)}${editorValue.slice(end)}`.replace(/\n{3,}/g, '\n\n').trim();
+      const cleaned = currentSection
+        ? `${currentSection.lockedContent}${JOURNAL_ENTRY_MARKER}\n${cleanedEditorValue}`
+        : cleanedEditorValue;
       slashTokenRangeRef.current = null;
       setContent(cleaned);
       setSlashQuery('');
@@ -305,17 +323,22 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
 
   const handleCommandSelect = (command: '/gem' | '/ask' | '/summarise' | '/prompt' | '/quotes') => {
     const range = slashTokenRangeRef.current;
-    const cursorPosition = contentRef.current?.selectionStart ?? content.length;
+    const currentSection = getEditableJournalSection(content);
+    const editorValue = currentSection?.editableContent ?? content;
+    const cursorPosition = contentRef.current?.selectionStart ?? editorValue.length;
     const start = range?.start ?? cursorPosition;
     const end = range?.end ?? cursorPosition;
     const cleaned = range
-      ? `${content.slice(0, start)}${content.slice(end)}`.replace(/\n{3,}/g, '\n\n').trim()
-      : content;
+      ? `${editorValue.slice(0, start)}${editorValue.slice(end)}`.replace(/\n{3,}/g, '\n\n').trim()
+      : editorValue;
+    const fullCleaned = currentSection
+      ? `${currentSection.lockedContent}${JOURNAL_ENTRY_MARKER}\n${cleaned}`
+      : cleaned;
     slashTokenRangeRef.current = null;
-    setContent(cleaned);
+    setContent(fullCleaned);
     setSlashQuery('');
     setShowSlashMenu(false);
-    void handleInvokeCompanion(command, undefined, cleaned);
+    void handleInvokeCompanion(command, undefined, fullCleaned);
   };
 
   const handleInvokeCompanion = async (
@@ -345,7 +368,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
         timestamp: new Date().toISOString(),
         suggestion: result.suggestion,
       };
-      const nextContent = `${contentOverride ?? content}`.trimEnd() + `\n\n[Gemini ${cmd}]\n${result.response}\n\n[Journal entry]\n`;
+      const nextContent = `${contentOverride ?? content}`.trimEnd() + `\n\n[Gemini ${cmd}]\n${result.response}\n\n${JOURNAL_ENTRY_MARKER}\n`;
       const normalizedContent = nextContent.trimStart();
       setContent(normalizedContent);
       focusEditorAtEnd(normalizedContent);
@@ -478,6 +501,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
     ({ aliases }) => !slashQuery || aliases.some((a) => a.startsWith(slashQuery))
   );
   visibleCommandsRef.current = visibleCommands;
+  const editableSection = getEditableJournalSection(content);
 
   return (
     <div className={`relative min-w-0 max-w-[1320px] mx-auto py-5 px-3 sm:py-8 sm:px-6 lg:px-10 transition-all duration-200 ${isFocusMode ? 'max-w-4xl' : ''}`}>
@@ -654,7 +678,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
               }}
             >
               <div className="pointer-events-none min-h-[inherit] space-y-3" aria-hidden="true">
-                {content ? getJournalBlocks(content).map((block, i) => (
+                {(editableSection ? getJournalBlocks(editableSection.lockedContent) : getJournalBlocks(content)).map((block, i) => (
                   <div
                     key={`${block.label}-${i}`}
                     className={`rounded-xl border px-4 py-3 shadow-[0_3px_12px_rgba(132,76,108,0.05)] ${
@@ -668,7 +692,8 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
                     </span>
                     <div className="whitespace-pre-wrap">{block.text}</div>
                   </div>
-                )) : (
+                ))}
+                {!editableSection && !content && (
                   <div className="rounded-xl border border-dashed border-[#e7a6c3] bg-[#fff2f8] px-4 py-3">
                     <span className="mb-2 inline-flex rounded-md bg-[#f9b2d7] px-2 py-0.5 text-xs font-semibold text-[#784160]">
                       Journal entry
@@ -679,11 +704,19 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
               </div>
               <textarea
                 ref={contentRef}
-                value={content}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleContentChange(e.target.value)}
+                value={editableSection?.editableContent ?? content}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                  const nextValue = editableSection
+                    ? `${editableSection.lockedContent}${JOURNAL_ENTRY_MARKER}\n${e.target.value}`
+                    : e.target.value;
+                  handleContentChange(nextValue);
+                }}
                 onKeyDown={handleEditorKeyDown}
                 aria-label="Journal entry"
-                className="absolute inset-0 h-full w-full resize-none overflow-hidden bg-transparent font-sans text-base sm:text-lg leading-[1.65] text-transparent caret-[#854c6c] placeholder:text-transparent focus:outline-none selection:bg-[#f9b2d7]/40"
+                className={editableSection
+                  ? 'relative z-10 mt-3 min-h-[12rem] w-full resize-none overflow-hidden rounded-xl border border-[#f1c7d9] bg-[#fffafd] px-4 py-3 font-sans text-base sm:text-lg leading-[1.65] text-[#1b1c1a] caret-[#854c6c] placeholder:text-[#b45f82] focus:outline-none focus:ring-1 focus:ring-[#e7a6c3] selection:bg-[#f9b2d7]/40'
+                  : 'absolute inset-0 h-full w-full resize-none overflow-hidden bg-transparent font-sans text-base sm:text-lg leading-[1.65] text-transparent caret-[#854c6c] placeholder:text-transparent focus:outline-none selection:bg-[#f9b2d7]/40'}
+                placeholder={editableSection ? 'Continue your reflection...' : undefined}
               />
             </div>
             <div className="flex flex-wrap items-start justify-between gap-3 pt-3 border-t border-[#efeeeb] text-xs">
