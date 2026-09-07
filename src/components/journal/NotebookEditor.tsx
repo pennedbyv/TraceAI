@@ -544,18 +544,33 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
 
           {/* Textarea */}
           <div className="relative mb-6">
-            <textarea
-              ref={contentRef}
-              rows={14}
-              value={content}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleContentChange(e.target.value)}
-              onKeyDown={handleEditorKeyDown}
-              placeholder="Write freely. Type / to trigger commands..."
-              className="w-full resize-y bg-transparent font-serif text-xl leading-[1.8] text-[#1b1c1a] placeholder:text-[#b45f82] focus:outline-none selection:bg-[#f9b2d7]/30 sm:text-2xl"
-              style={{
-                backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent calc(1.8em - 1px), rgba(241, 199, 217, 0.55) 1.8em)',
-              }}
-            />
+            <div className="relative">
+              <textarea
+                ref={contentRef}
+                rows={14}
+                value={content}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleContentChange(e.target.value)}
+                onKeyDown={handleEditorKeyDown}
+                placeholder="Write freely. Type / to trigger commands..."
+                className="w-full resize-y bg-transparent font-serif text-xl leading-[1.8] text-transparent caret-[#1b1c1a] placeholder:text-[#b45f82] focus:outline-none selection:bg-[#f9b2d7]/30 sm:text-2xl absolute inset-0 z-10"
+                style={{
+                  backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent calc(1.8em - 1px), rgba(241, 199, 217, 0.55) 1.8em)',
+                  minHeight: '14lh',
+                  height: contentRef.current?.scrollHeight ? `${contentRef.current.scrollHeight}px` : undefined,
+                }}
+              />
+              <div
+                aria-hidden="true"
+                className="w-full font-serif text-xl leading-[1.8] text-[#1b1c1a] sm:text-2xl whitespace-pre-wrap break-words pointer-events-none"
+                style={{ minHeight: '14lh' }}
+              >
+                {content ? content.split(/(\[Gemini [^\]]+\])/g).map((part, i) =>
+                  /^\[Gemini [^\]]+\]$/.test(part)
+                    ? <span key={i} className="bg-[#f9b2d7] text-[#784160] rounded px-1 font-semibold not-italic text-base">{part}</span>
+                    : <span key={i}>{part}</span>
+                ) : <span className="text-[#b45f82]">Write freely. Type / to trigger commands...</span>}
+              </div>
+            </div>
 
             {/* Trigger bar */}
             <div className="flex items-center justify-between pt-3 border-t border-[#efeeeb] text-xs">
