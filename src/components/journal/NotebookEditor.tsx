@@ -48,6 +48,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
   const [copiedId, setCopiedId] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | null>(null);
   const [showPinPicker, setShowPinPicker] = useState(false);
+  const [slashSelectedIndex, setSlashSelectedIndex] = useState(0);
   const isFirstRender = useRef(true);
 
   const recognitionRef = useRef<any>(null);
@@ -167,6 +168,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
     const currentToken = nextContent.split(/\s/).pop() || '';
     if (currentToken.startsWith('/') && currentToken.length <= 12) {
       setSlashQuery(currentToken.slice(1).toLowerCase());
+      setSlashSelectedIndex(0);
       openMenu();
     } else {
       setSlashQuery('');
@@ -175,23 +177,35 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
   };
 
   const handleEditorKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!showSlashMenu) return;
     if (event.key === 'Escape') {
+      event.preventDefault();
       setShowSlashMenu(false);
       setSlashQuery('');
+      setSlashSelectedIndex(0);
       return;
     }
-    if (event.key !== 'Enter' || !showSlashMenu || companionLoading) return;
-    const matches = slashCommands.filter(({ aliases }) =>
-      aliases.some((alias) => alias.startsWith(slashQuery))
-    );
-    if (matches.length === 0) return;
-    event.preventDefault();
-    const selectedCommand = matches[0].command;
-    const cleaned = content.replace(/(?:^|\s)\/[^\s]*$/, '').trimEnd();
-    setContent(cleaned);
-    setSlashQuery('');
-    setShowSlashMenu(false);
-    void handleInvokeCompanion(selectedCommand, undefined, cleaned);
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setSlashSelectedIndex((i) => (i + 1) % visibleCommands.length);
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setSlashSelectedIndex((i) => (i - 1 + visibleCommands.length) % visibleCommands.length);
+      return;
+    }
+    if (event.key === 'Enter' && !companionLoading) {
+      if (visibleCommands.length === 0) return;
+      event.preventDefault();
+      const selectedCommand = visibleCommands[slashSelectedIndex].command;
+      const cleaned = content.replace(/(?:^|\s)\/[^\s]*$/, '').trimEnd();
+      setContent(cleaned);
+      setSlashQuery('');
+      setShowSlashMenu(false);
+      setSlashSelectedIndex(0);
+      void handleInvokeCompanion(selectedCommand, undefined, cleaned);
+    }
   };
 
   const handleCommandSelect = (command: '/gem' | '/ask' | '/summarise' | '/prompt' | '/quotes') => {
@@ -398,7 +412,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
               <button
                 key={cmd.command}
                 onClick={() => handleCommandSelect(cmd.command)}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors cursor-pointer ${i === 0 ? 'bg-[#fdf6fa]' : 'hover:bg-[#faf9f8]'}`}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors cursor-pointer ${i === slashSelectedIndex ? 'bg-[#fdf6fa]' : 'hover:bg-[#faf9f8]'}`}
                 type="button"
               >
                 <span className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${cmd.iconBg}`}>

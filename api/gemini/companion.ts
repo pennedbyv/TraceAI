@@ -8,7 +8,7 @@ type VercelResponse = {
   json: (body: unknown) => VercelResponse;
 };
 
-const GEMINI_MODELS = ['gemini-3.6-flash', 'gemini-1.5-flash'];
+const GEMINI_MODELS = ['gemini-3.6-flash', 'gemini-3.7-flash'];
 
 function getGeminiKey(): string | undefined {
   const key = (globalThis as typeof globalThis & {
