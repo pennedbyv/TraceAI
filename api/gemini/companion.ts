@@ -8,12 +8,13 @@ type VercelResponse = {
   json: (body: unknown) => VercelResponse;
 };
 
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+const GEMINI_MODELS = ['gemini-3.6-flash', 'gemini-1.5-flash'];
 
 function getGeminiKey(): string | undefined {
-  return (globalThis as typeof globalThis & {
+  const key = (globalThis as typeof globalThis & {
     process?: { env?: Record<string, string | undefined> };
   }).process?.env?.GEMINI_API_KEY;
+  return key && key !== '#' && key !== 'MY_GEMINI_API_KEY' ? key : undefined;
 }
 
 async function generateWithFallback(systemInstruction: string, prompt: string) {
@@ -29,9 +30,9 @@ async function generateWithFallback(systemInstruction: string, prompt: string) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            systemInstruction: { parts: [{ text: systemInstruction }] },
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.65, maxOutputTokens: 600 },
+            system_instruction: { parts: [{ text: systemInstruction }] },
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generation_config: { temperature: 0.65, maxOutputTokens: 600 },
           }),
         },
       );
@@ -42,7 +43,7 @@ async function generateWithFallback(systemInstruction: string, prompt: string) {
         const detail = errorBody?.error?.message;
         throw new Error(
           detail
-            ? `Gemini request failed with status ${response.status}: ${detail}`
+            ? `Gemini ${response.status}: ${detail}`
             : `Gemini request failed with status ${response.status}.`,
         );
       }
@@ -104,11 +105,12 @@ Respond directly to the command:
     });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'AI Companion generation unavailable';
-    res.status(503).json({
+    const isKeyMissing = msg.includes('not configured');
+    res.status(isKeyMissing ? 500 : 503).json({
       ok: false,
-      error: msg.includes('not configured')
+      error: isKeyMissing
         ? 'GEMINI_API_KEY is not configured. Add it to Vercel environment variables.'
-        : `Gemini request failed: ${msg}`,
+        : msg,
     });
   }
 }

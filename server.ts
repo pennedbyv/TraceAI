@@ -1,11 +1,10 @@
 import express, { type Request, type Response } from 'express';
 import path from 'path';
 import dotenv from 'dotenv';
-import { GoogleGenAI } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
-dotenv.config({ path: path.resolve(process.cwd(), '..', '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env'), override: true });
+dotenv.config({ path: path.resolve(process.cwd(), '..', '.env'), override: true });
 
 const app = express();
 const PORT = 3000;
@@ -26,50 +25,47 @@ app.get('/api/health', (_req: Request, res: Response) => {
 
 // Resilient Gemini Model Fallback Ladder
 const GEMINI_MODELS = [
+  'gemini-3.6-flash',
   'gemini-2.5-flash',
-  'gemini-2.0-flash',
 ];
-
-// Lazy initialization of GoogleGenAI
-let aiClient: GoogleGenAI | null = null;
-function getGenAI(): GoogleGenAI | null {
-  if (!aiClient) {
-    const key = process.env.GEMINI_API_KEY;
-    if (key && key !== 'MY_GEMINI_API_KEY') {
-      aiClient = new GoogleGenAI({ apiKey: key });
-    }
-  }
-  return aiClient;
-}
 
 /**
  * Resilient helper executing content generation with automated fallback
  */
 async function generateWithFallback(systemInstruction: string, prompt: string) {
-  const ai = getGenAI();
-  if (!ai) {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key || key === '#' || key === 'MY_GEMINI_API_KEY') {
     throw new Error('GEMINI_API_KEY is not configured on the server.');
   }
 
   let lastError: unknown = null;
   for (const model of GEMINI_MODELS) {
     try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: {
-          systemInstruction,
-          temperature: 0.65,
-          maxOutputTokens: 600,
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.65, maxOutputTokens: 600 },
+          }),
         },
-      });
+      );
 
-      if (response && response.text) {
-        return {
-          text: response.text.trim(),
-          modelUsed: model,
-        };
+      if (!response.ok) {
+        const errorBody = (await response.json().catch(() => null)) as {
+          error?: { message?: string };
+        } | null;
+        throw new Error(errorBody?.error?.message || `Gemini request failed with status ${response.status}.`);
       }
+
+      const data = (await response.json()) as {
+        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      };
+      const text = data.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('').trim();
+      if (text) return { text, modelUsed: model };
     } catch (err: unknown) {
       lastError = err;
       const status = (err as { status?: number; statusCode?: number })?.status || (err as { status?: number; statusCode?: number })?.statusCode;
