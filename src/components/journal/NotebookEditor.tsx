@@ -693,7 +693,11 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
                         : 'border-[#f1c7d9] bg-[#fffafd]'
                     }`}
                   >
-                    <span className="mb-2 inline-flex rounded-md bg-[#f9b2d7] px-2 py-0.5 text-xs font-semibold text-[#784160]">
+                    <span className={`mb-2 inline-flex rounded-md px-2 py-0.5 text-xs font-semibold ${
+                      block.kind === 'companion'
+                        ? 'bg-[#f9b2d7] text-[#784160]'
+                        : 'bg-[#cfe8d5] text-[#31543b]'
+                    }`}>
                       {block.label}
                     </span>
                     <div className="whitespace-pre-wrap">{block.text}</div>
@@ -701,29 +705,38 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
                 ))}
                 {!editableSection && !content && (
                   <div className="rounded-xl border border-dashed border-[#e7a6c3] bg-[#fff2f8] px-4 py-3">
-                    <span className="mb-2 inline-flex rounded-md bg-[#f9b2d7] px-2 py-0.5 text-xs font-semibold text-[#784160]">
+                    <span className="mb-2 inline-flex rounded-md bg-[#cfe8d5] px-2 py-0.5 text-xs font-semibold text-[#31543b]">
                       Journal entry
                     </span>
                     <div className="text-[#b45f82]">Start writing your reflection...</div>
                   </div>
                 )}
               </div>
-              <textarea
-                ref={contentRef}
-                value={editableSection?.editableContent ?? content}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                  const nextValue = editableSection
-                    ? `${editableSection.lockedContent}${JOURNAL_ENTRY_MARKER}\n${e.target.value}`
-                    : e.target.value;
-                  handleContentChange(nextValue);
-                }}
-                onKeyDown={handleEditorKeyDown}
-                aria-label="Journal entry"
-                className={editableSection
-                  ? 'relative z-10 mt-3 min-h-[12rem] w-full resize-none overflow-hidden rounded-xl border border-[#f1c7d9] bg-[#fffafd] px-4 py-3 font-sans text-base sm:text-lg leading-[1.65] text-[#1b1c1a] caret-[#854c6c] placeholder:text-[#b45f82] focus:outline-none focus:ring-1 focus:ring-[#e7a6c3] selection:bg-[#f9b2d7]/40'
-                  : 'absolute inset-0 h-full w-full resize-none overflow-hidden bg-transparent font-sans text-base sm:text-lg leading-[1.65] text-transparent caret-[#854c6c] placeholder:text-transparent focus:outline-none selection:bg-[#f9b2d7]/40'}
-                placeholder={editableSection ? 'Continue your reflection...' : undefined}
-              />
+              {editableSection ? (
+                <div className="relative z-10 mt-3 rounded-xl border border-[#cfe8d5] bg-[#fbfffc] px-4 py-3">
+                  <span className="mb-2 inline-flex rounded-md bg-[#cfe8d5] px-2 py-0.5 text-xs font-semibold text-[#31543b]">
+                    Journal entry
+                  </span>
+                  <textarea
+                    ref={contentRef}
+                    value={editableSection.editableContent}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleContentChange(`${editableSection.lockedContent}${JOURNAL_ENTRY_MARKER}\n${e.target.value}`)}
+                    onKeyDown={handleEditorKeyDown}
+                    aria-label="Journal entry"
+                    className="block min-h-[12rem] w-full resize-none overflow-hidden bg-transparent font-sans text-base sm:text-lg leading-[1.65] text-[#1b1c1a] caret-[#31543b] placeholder:text-[#78927e] focus:outline-none selection:bg-[#cfe8d5]"
+                    placeholder="Continue your reflection..."
+                  />
+                </div>
+              ) : (
+                <textarea
+                  ref={contentRef}
+                  value={content}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleContentChange(e.target.value)}
+                  onKeyDown={handleEditorKeyDown}
+                  aria-label="Journal entry"
+                  className="absolute inset-0 h-full w-full resize-none overflow-hidden bg-transparent font-sans text-base sm:text-lg leading-[1.65] text-transparent caret-[#854c6c] placeholder:text-transparent focus:outline-none selection:bg-[#f9b2d7]/40"
+                />
+              )}
             </div>
             <div className="flex flex-wrap items-start justify-between gap-3 pt-3 border-t border-[#efeeeb] text-xs">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
