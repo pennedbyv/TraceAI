@@ -378,7 +378,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
       const currentSection = getEditableJournalSection(sourceContent);
       const committedJournal = currentSection?.editableContent.trim();
       const responseBase = currentSection
-        ? `${currentSection.lockedContent}${committedJournal ? `\n\n${committedJournal}` : ''}`
+        ? `${currentSection.lockedContent}${JOURNAL_ENTRY_MARKER}${committedJournal ? `\n${committedJournal}` : ''}`
         : sourceContent.trimEnd();
       const nextContent = `${responseBase.trimEnd()}\n\n[Gemini ${cmd}]\n${result.response}\n\n${JOURNAL_ENTRY_MARKER}\n`;
       const normalizedContent = nextContent.trimStart();
@@ -410,7 +410,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
     const currentSection = getEditableJournalSection(content);
     const journalText = currentSection?.editableContent.trim() || '';
     const committedContent = currentSection
-      ? `${currentSection.lockedContent}${journalText ? `\n\n${journalText}` : ''}\n\n${JOURNAL_ENTRY_MARKER}\n`
+      ? `${currentSection.lockedContent}${JOURNAL_ENTRY_MARKER}${journalText ? `\n${journalText}` : ''}\n\n${JOURNAL_ENTRY_MARKER}\n`
       : `${content.trimEnd()}\n\n${JOURNAL_ENTRY_MARKER}\n`;
     const nextContent = committedContent.trimStart();
 
