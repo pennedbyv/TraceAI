@@ -547,17 +547,13 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
             <div className="relative">
               <textarea
                 ref={contentRef}
+                rows={14}
                 value={content}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                  handleContentChange(e.target.value);
-                  e.target.style.height = 'auto';
-                  e.target.style.height = `${e.target.scrollHeight}px`;
-                }}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleContentChange(e.target.value)}
                 onKeyDown={handleEditorKeyDown}
                 placeholder="Write freely. Type / to trigger commands..."
-                className="w-full resize-none bg-transparent font-serif text-xl sm:text-2xl leading-[1.8] text-[#1b1c1a] placeholder:text-[#b45f82] focus:outline-none selection:bg-[#f9b2d7]/40"
+                className="w-full resize-y bg-transparent font-serif text-xl sm:text-2xl leading-[1.8] text-[#1b1c1a] placeholder:text-[#b45f82] focus:outline-none selection:bg-[#f9b2d7]/40"
                 style={{
-                  minHeight: '25.2em',
                   backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent calc(1.8em - 1px), rgba(241, 199, 217, 0.55) 1.8em)',
                 }}
               />
