@@ -250,7 +250,13 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
   };
 
   const handleContentChange = (nextContent: string) => {
-    if (hasCompanionEdit(content, nextContent)) {
+    const currentSection = getEditableJournalSection(content);
+    const editablePrefix = currentSection
+      ? `${currentSection.lockedContent}${JOURNAL_ENTRY_MARKER}\n`
+      : null;
+    const isEditableSectionChange = editablePrefix !== null && nextContent.startsWith(editablePrefix);
+
+    if (!isEditableSectionChange && hasCompanionEdit(content, nextContent)) {
       setSaveBanner('Gemini responses cannot be edited.');
       setTimeout(() => setSaveBanner(null), 2500);
       return;
