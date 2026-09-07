@@ -545,31 +545,40 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
           {/* Textarea */}
           <div className="relative mb-6">
             <div className="relative">
-              <textarea
-                ref={contentRef}
-                rows={14}
-                value={content}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleContentChange(e.target.value)}
-                onKeyDown={handleEditorKeyDown}
-                placeholder="Write freely. Type / to trigger commands..."
-                className="w-full resize-y bg-transparent font-serif text-xl leading-[1.8] text-transparent caret-[#1b1c1a] placeholder:text-[#b45f82] focus:outline-none selection:bg-[#f9b2d7]/30 sm:text-2xl absolute inset-0 z-10"
-                style={{
-                  backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent calc(1.8em - 1px), rgba(241, 199, 217, 0.55) 1.8em)',
-                  minHeight: '14lh',
-                  height: contentRef.current?.scrollHeight ? `${contentRef.current.scrollHeight}px` : undefined,
-                }}
-              />
+              {/* Overlay div drives height and renders pink labels */}
               <div
                 aria-hidden="true"
-                className="w-full font-serif text-xl leading-[1.8] text-[#1b1c1a] sm:text-2xl whitespace-pre-wrap break-words pointer-events-none"
-                style={{ minHeight: '14lh' }}
+                className="w-full font-serif text-xl sm:text-2xl leading-[1.8] text-[#1b1c1a] whitespace-pre-wrap break-words pointer-events-none"
+                style={{
+                  backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent calc(1.8em - 1px), rgba(241, 199, 217, 0.55) 1.8em)',
+                  minHeight: '25.2em',
+                }}
               >
-                {content ? content.split(/(\[Gemini [^\]]+\])/g).map((part, i) =>
-                  /^\[Gemini [^\]]+\]$/.test(part)
-                    ? <span key={i} className="bg-[#f9b2d7] text-[#784160] rounded px-1 font-semibold not-italic text-base">{part}</span>
-                    : <span key={i}>{part}</span>
-                ) : <span className="text-[#b45f82]">Write freely. Type / to trigger commands...</span>}
+                {content
+                  ? content.split(/(\[Gemini [^\]]+\])/g).map((part, i) =>
+                      /^\[Gemini [^\]]+\]$/.test(part)
+                        ? <span key={i} className="bg-[#f9b2d7] text-[#784160] rounded-md px-1.5 py-0.5 font-semibold text-sm">{part}</span>
+                        : <span key={i}>{part}</span>
+                    )
+                  : <span className="text-[#b45f82]">Write freely. Type / to trigger commands...</span>
+                }
+                {'
+'}
               </div>
+              {/* Transparent textarea on top — same font metrics, caret visible */}
+              <textarea
+                ref={contentRef}
+                value={content}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                  handleContentChange(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                }}
+                onKeyDown={handleEditorKeyDown}
+                placeholder=""
+                className="absolute inset-0 w-full h-full resize-none bg-transparent font-serif text-xl sm:text-2xl leading-[1.8] text-transparent caret-[#1b1c1a] focus:outline-none selection:bg-[#f9b2d7]/40 overflow-hidden"
+                style={{ minHeight: '25.2em' }}
+              />
             </div>
 
             {/* Trigger bar */}
