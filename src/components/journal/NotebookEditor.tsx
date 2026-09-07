@@ -427,12 +427,11 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
           <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#d4c2c9]/40 rounded-tr-2xl pointer-events-none" />
 
           {/* Metadata Strip */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-5 mb-10 border-b border-[#efeeeb]">
+          <div className="relative flex flex-wrap items-center justify-between gap-4 pb-6 mb-10">
             <div className="flex items-center gap-3 text-xs text-[#504349]">
-              <span className="font-serif italic text-sm text-[#1b1c1a] font-medium">
+              <span className="font-serif italic text-sm font-semibold text-[#1b1c1a]">
                 {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
               </span>
-              <span>•</span>
               <span className="font-mono text-[11px]">
                 {new Date(entry.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
               </span>
@@ -471,6 +470,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
                 <span className="hidden sm:inline text-[11px] font-medium">{isFocusMode ? 'Focus On' : 'Focus'}</span>
               </button>
             </div>
+            <span className="absolute bottom-0 left-0 h-1 w-full rounded-full bg-[#c45b87]" aria-hidden="true" />
           </div>
 
           {/* Weather Bar */}
