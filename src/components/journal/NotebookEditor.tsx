@@ -401,18 +401,27 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
   };
 
   const handleSaveJournalEntry = () => {
+    const currentSection = getEditableJournalSection(content);
+    const journalText = currentSection?.editableContent.trim() || '';
+    const committedContent = currentSection
+      ? `${currentSection.lockedContent}${journalText ? `\n\n${journalText}` : ''}\n\n${JOURNAL_ENTRY_MARKER}\n`
+      : `${content.trimEnd()}\n\n${JOURNAL_ENTRY_MARKER}\n`;
+    const nextContent = committedContent.trimStart();
+
+    setContent(nextContent);
+    focusEditorAtEnd('');
     onSaveEntry({
       ...entry,
       title,
-      content,
+      content: nextContent,
       category,
       tags,
       marginNotes,
-      wordCount: words,
-      readingTimeMinutes: readTime,
+      wordCount: nextContent.trim().split(/\s+/).filter(Boolean).length,
+      readingTimeMinutes: Math.max(1, Math.ceil(nextContent.trim().split(/\s+/).filter(Boolean).length / 220)),
       updatedAt: new Date().toISOString(),
     });
-    setSaveBanner('Journal entry saved.');
+    setSaveBanner('Journal entry saved. A new entry is ready.');
     setTimeout(() => setSaveBanner(null), 2500);
   };
 
