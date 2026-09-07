@@ -29,6 +29,36 @@ interface NotebookEditorProps {
   onBack?: () => void;
 }
 
+type JournalBlock = {
+  label: string;
+  text: string;
+  kind: 'entry' | 'companion';
+};
+
+const getJournalBlocks = (value: string): JournalBlock[] => {
+  const parts = value.split(/(\[Gemini [^\]]+\])/g);
+  const blocks: JournalBlock[] = [];
+  let currentLabel = 'Journal entry';
+  let currentKind: JournalBlock['kind'] = 'entry';
+
+  parts.forEach((part) => {
+    const marker = part.match(/^\[Gemini ([^\]]+)\]$/);
+    if (marker) {
+      currentLabel = `Gemini ${marker[1]}`;
+      currentKind = 'companion';
+      return;
+    }
+
+    if (part.trim()) {
+      blocks.push({ label: currentLabel, text: part.trim(), kind: currentKind });
+      currentLabel = 'Journal entry';
+      currentKind = 'entry';
+    }
+  });
+
+  return blocks;
+};
+
 export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onSaveEntry, onBack }) => {
   const [title, setTitle] = useState(entry.title);
   const [content, setContent] = useState(entry.content);
@@ -50,6 +80,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
   const [showPinPicker, setShowPinPicker] = useState(false);
   const [slashSelectedIndex, setSlashSelectedIndex] = useState(0);
   const isFirstRender = useRef(true);
+  const slashTokenRangeRef = useRef<{ start: number; end: number } | null>(null);
 
   const recognitionRef = useRef<any>(null);
   const [interimText, setInterimText] = useState('');
@@ -167,12 +198,20 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
 
   const handleContentChange = (nextContent: string) => {
     setContent(nextContent);
-    const currentToken = nextContent.split(/\s/).pop() || '';
-    if (currentToken.startsWith('/') && currentToken.length <= 12) {
+    const cursorPosition = contentRef.current?.selectionStart ?? nextContent.length;
+    const textBeforeCursor = nextContent.slice(0, cursorPosition);
+    const tokenMatch = textBeforeCursor.match(/(?:^|\s)(\/[^\s]*)$/);
+    const currentToken = tokenMatch?.[1] || '';
+    if (currentToken.startsWith('/') && currentToken.length <= 20) {
+      slashTokenRangeRef.current = {
+        start: cursorPosition - currentToken.length,
+        end: cursorPosition,
+      };
       setSlashQuery(currentToken.slice(1).toLowerCase());
       setSlashSelectedIndex(0);
       openMenu();
     } else {
+      slashTokenRangeRef.current = null;
       setSlashQuery('');
       setShowSlashMenu(false);
     }
@@ -182,17 +221,20 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
     if (!showSlashMenu) return;
     if (event.key === 'Escape') {
       event.preventDefault();
+      slashTokenRangeRef.current = null;
       setShowSlashMenu(false);
       setSlashQuery('');
       setSlashSelectedIndex(0);
       return;
     }
     if (event.key === 'ArrowDown') {
+      if (visibleCommandsRef.current.length === 0) return;
       event.preventDefault();
       setSlashSelectedIndex((i: number) => (i + 1) % visibleCommandsRef.current.length);
       return;
     }
     if (event.key === 'ArrowUp') {
+      if (visibleCommandsRef.current.length === 0) return;
       event.preventDefault();
       setSlashSelectedIndex((i: number) => (i - 1 + visibleCommandsRef.current.length) % visibleCommandsRef.current.length);
       return;
@@ -201,7 +243,12 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
       if (visibleCommandsRef.current.length === 0) return;
       event.preventDefault();
       const selectedCommand = visibleCommandsRef.current[slashSelectedIndex].command;
-      const cleaned = content.replace(/(?:^|\s)\/[^\s]*$/, '').trimEnd();
+      const range = slashTokenRangeRef.current;
+      const cursorPosition = contentRef.current?.selectionStart ?? content.length;
+      const start = range?.start ?? cursorPosition;
+      const end = range?.end ?? cursorPosition;
+      const cleaned = `${content.slice(0, start)}${content.slice(end)}`.replace(/\n{3,}/g, '\n\n').trim();
+      slashTokenRangeRef.current = null;
       setContent(cleaned);
       setSlashQuery('');
       setShowSlashMenu(false);
@@ -211,9 +258,14 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
   };
 
   const handleCommandSelect = (command: '/gem' | '/ask' | '/summarise' | '/prompt' | '/quotes') => {
-    const cleaned = /(?:^|\s)\/[^\s]*$/.test(content)
-      ? content.replace(/(?:^|\s)\/[^\s]*$/, '').trimEnd()
+    const range = slashTokenRangeRef.current;
+    const cursorPosition = contentRef.current?.selectionStart ?? content.length;
+    const start = range?.start ?? cursorPosition;
+    const end = range?.end ?? cursorPosition;
+    const cleaned = range
+      ? `${content.slice(0, start)}${content.slice(end)}`.replace(/\n{3,}/g, '\n\n').trim()
       : content;
+    slashTokenRangeRef.current = null;
     setContent(cleaned);
     setSlashQuery('');
     setShowSlashMenu(false);
@@ -545,27 +597,46 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
 
           {/* Editor */}
           <div className="relative mb-6">
-            <textarea
-              ref={contentRef}
-              value={content}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleContentChange(e.target.value)}
-              onKeyDown={handleEditorKeyDown}
-              placeholder="Write freely. Type / to trigger commands..."
-              className="w-full max-w-full resize-none bg-transparent font-serif text-base sm:text-lg leading-[1.65] text-[#1b1c1a] caret-[#854c6c] placeholder:text-[#b45f82] focus:outline-none selection:bg-[#f9b2d7]/40"
+            <div
+              className="relative w-full max-w-full font-serif text-base sm:text-lg leading-[1.65] text-[#1b1c1a] break-words"
               style={{
                 minHeight: 'clamp(26rem, 60vh, 52rem)',
                 backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent calc(1.65em - 1px), rgba(241, 199, 217, 0.55) 1.65em)',
               }}
-            />
-            {/\[Gemini [^\]]+\]/.test(content) && (
-              <div className="mt-6 pt-4 border-t border-[#f1c7d9] font-serif text-lg leading-[1.8] text-[#1b1c1a] whitespace-pre-wrap break-words select-none pointer-events-none">
-                {content.split(/(\[Gemini [^\]]+\])/g).map((part, i) =>
-                  /^\[Gemini [^\]]+\]$/.test(part)
-                    ? <span key={i} className="bg-[#f9b2d7] text-[#784160] rounded-md px-2 py-0.5 font-semibold text-sm">{part}</span>
-                    : <span key={i}>{part}</span>
+            >
+              <div className="pointer-events-none min-h-[inherit] space-y-3" aria-hidden="true">
+                {content ? getJournalBlocks(content).map((block, i) => (
+                  <div
+                    key={`${block.label}-${i}`}
+                    className={`rounded-xl border px-4 py-3 shadow-[0_3px_12px_rgba(132,76,108,0.05)] ${
+                      block.kind === 'companion'
+                        ? 'border-[#e7a6c3] bg-[#fff2f8]'
+                        : 'border-[#f1c7d9] bg-[#fffafd]'
+                    }`}
+                  >
+                    <span className="mb-2 inline-flex rounded-md bg-[#f9b2d7] px-2 py-0.5 text-xs font-semibold text-[#784160]">
+                      {block.label}
+                    </span>
+                    <div className="whitespace-pre-wrap">{block.text}</div>
+                  </div>
+                )) : (
+                  <div className="rounded-xl border border-dashed border-[#e7a6c3] bg-[#fff2f8] px-4 py-3">
+                    <span className="mb-2 inline-flex rounded-md bg-[#f9b2d7] px-2 py-0.5 text-xs font-semibold text-[#784160]">
+                      Journal entry
+                    </span>
+                    <div className="text-[#b45f82]">Start writing your reflection...</div>
+                  </div>
                 )}
               </div>
-            )}
+              <textarea
+                ref={contentRef}
+                value={content}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleContentChange(e.target.value)}
+                onKeyDown={handleEditorKeyDown}
+                aria-label="Journal entry"
+                className="absolute inset-0 h-full w-full resize-none overflow-hidden bg-transparent font-serif text-base sm:text-lg leading-[1.65] text-transparent caret-[#854c6c] placeholder:text-transparent focus:outline-none selection:bg-[#f9b2d7]/40"
+              />
+            </div>
             <div className="flex flex-wrap items-start justify-between gap-3 pt-3 border-t border-[#efeeeb] text-xs">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <button
