@@ -19,7 +19,7 @@ import {
   MessageSquare,
   MapPin,
   ArrowLeft,
-} from 'lucide-react';
+} from 'lucide-react'; 
 
 interface NotebookEditorProps {
   entry: JournalEntry;
