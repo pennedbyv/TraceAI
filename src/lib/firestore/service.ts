@@ -1,4 +1,4 @@
-import { get, ref, remove, set } from 'firebase/database';
+import { get, onValue, ref, remove, set } from 'firebase/database';
 import { database } from '../firebase/client';
 import type { JournalEntry, CompanionInteraction } from '../../types';
 
@@ -105,6 +105,46 @@ export async function getUserEntries(userId: string): Promise<JournalEntry[]> {
       ? `Realtime Database error (${code}). Check the database URL and rules.`
       : 'Journal entries could not be loaded from Realtime Database. Check your Firebase rules and connection.');
   }
+}
+
+/**
+ * Subscribe to the user's entries so changes from other tabs or devices arrive immediately.
+ */
+export function subscribeToUserEntries(
+  userId: string,
+  onEntries: (entries: JournalEntry[]) => void,
+  onError: (error: Error) => void,
+): () => void {
+  if (!userId || !database) {
+    onError(new Error('Realtime Database is not configured. Add the VITE_FIREBASE_* values and restart the app.'));
+    return () => {};
+  }
+
+  let migrationAttempted = false;
+  const entriesRef = ref(database, `users/${userId}/entries`);
+
+  return onValue(entriesRef, (snapshot) => {
+    const data = snapshot.val() as Record<string, JournalEntry> | null;
+    const remoteEntries = data ? Object.values(data) : [];
+    const localEntries = getLocalEntries(userId);
+    const remoteIds = new Set(remoteEntries.map((entry) => entry.id));
+    const entriesToMigrate = localEntries.filter((entry) => !remoteIds.has(entry.id));
+    const combinedEntries = [...remoteEntries, ...entriesToMigrate]
+      .reduce((unique, entry) => unique.set(entry.id, entry), new Map<string, JournalEntry>());
+
+    onEntries([...combinedEntries.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)));
+
+    if (!migrationAttempted && entriesToMigrate.length > 0) {
+      migrationAttempted = true;
+      void Promise.all(entriesToMigrate.map((entry) => saveJournalEntry(userId, entry)))
+        .catch((error: unknown) => onError(error instanceof Error ? error : new Error('Local entries could not be synced.')));
+    } else {
+      migrationAttempted = true;
+    }
+  }, (error) => {
+    console.error('Realtime Database journal subscription failed:', error);
+    onError(new Error(`Realtime Database error (${error.code}). Check the database URL and rules.`));
+  });
 }
 
 function getLocalEntries(userId: string): JournalEntry[] {

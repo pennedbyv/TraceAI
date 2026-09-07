@@ -3,6 +3,7 @@ import type { UserProfile, JournalEntry, ActiveNavSection } from './types';
 import { subscribeToAuthChanges, signOutUser } from './lib/firebase/client';
 import {
   getUserEntries,
+  subscribeToUserEntries,
   saveJournalEntry,
   deleteJournalEntry,
 } from './lib/firestore/service';
@@ -96,12 +97,29 @@ export default function App() {
   // When user is authenticated, load their isolated Realtime Database entries
   useEffect(() => {
     if (currentUser) {
-      loadUserVault(currentUser.uid);
+      return subscribeToUserVault(currentUser.uid);
     } else {
       setEntries([]);
       setActiveEntry(null);
     }
   }, [currentUser]);
+
+  const subscribeToUserVault = (uid: string) => {
+    setSyncStatus('saving');
+    return subscribeToUserEntries(uid, (loaded) => {
+      setEntries(loaded);
+      setActiveEntry((current) => {
+        if (current) {
+          return loaded.find((entry) => entry.id === current.id) || loaded[0] || null;
+        }
+        return loaded[0] || null;
+      });
+      setSyncStatus('synced');
+    }, (error) => {
+      console.warn('Error loading user entries:', error);
+      setSyncStatus('error');
+    });
+  };
 
   const loadUserVault = async (uid: string) => {
     try {
