@@ -59,6 +59,32 @@ const getJournalBlocks = (value: string): JournalBlock[] => {
   return blocks;
 };
 
+const hasCompanionEdit = (previous: string, next: string): boolean => {
+  if (previous === next) return false;
+
+  let changeStart = 0;
+  while (changeStart < previous.length && changeStart < next.length && previous[changeStart] === next[changeStart]) {
+    changeStart += 1;
+  }
+
+  let previousEnd = previous.length;
+  let nextEnd = next.length;
+  while (previousEnd > changeStart && nextEnd > changeStart && previous[previousEnd - 1] === next[nextEnd - 1]) {
+    previousEnd -= 1;
+    nextEnd -= 1;
+  }
+
+  const companionRanges = [...previous.matchAll(/\[Gemini [^\]]+\][\s\S]*?(?=\[Gemini [^\]]+\]|$)/g)];
+  return companionRanges.some((match) => {
+    const start = match.index ?? 0;
+    const end = start + match[0].length;
+    const isInsertion = changeStart === previousEnd;
+    return isInsertion
+      ? changeStart > start && changeStart < end
+      : changeStart < end && previousEnd > start;
+  });
+};
+
 export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onSaveEntry, onBack }) => {
   const [title, setTitle] = useState(entry.title);
   const [content, setContent] = useState(entry.content);
@@ -197,6 +223,11 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
   };
 
   const handleContentChange = (nextContent: string) => {
+    if (hasCompanionEdit(content, nextContent)) {
+      setSaveBanner('Gemini responses cannot be edited.');
+      setTimeout(() => setSaveBanner(null), 2500);
+      return;
+    }
     setContent(nextContent);
     const cursorPosition = contentRef.current?.selectionStart ?? nextContent.length;
     const textBeforeCursor = nextContent.slice(0, cursorPosition);
@@ -598,7 +629,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
           {/* Editor */}
           <div className="relative mb-6">
             <div
-              className="relative w-full max-w-full font-serif text-base sm:text-lg leading-[1.65] text-[#1b1c1a] break-words"
+              className="relative w-full max-w-full font-sans text-base sm:text-lg leading-[1.65] text-[#1b1c1a] break-words"
               style={{
                 minHeight: 'clamp(26rem, 60vh, 52rem)',
                 backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent calc(1.65em - 1px), rgba(241, 199, 217, 0.55) 1.65em)',
@@ -634,7 +665,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleContentChange(e.target.value)}
                 onKeyDown={handleEditorKeyDown}
                 aria-label="Journal entry"
-                className="absolute inset-0 h-full w-full resize-none overflow-hidden bg-transparent font-serif text-base sm:text-lg leading-[1.65] text-transparent caret-[#854c6c] placeholder:text-transparent focus:outline-none selection:bg-[#f9b2d7]/40"
+                className="absolute inset-0 h-full w-full resize-none overflow-hidden bg-transparent font-sans text-base sm:text-lg leading-[1.65] text-transparent caret-[#854c6c] placeholder:text-transparent focus:outline-none selection:bg-[#f9b2d7]/40"
               />
             </div>
             <div className="flex flex-wrap items-start justify-between gap-3 pt-3 border-t border-[#efeeeb] text-xs">
