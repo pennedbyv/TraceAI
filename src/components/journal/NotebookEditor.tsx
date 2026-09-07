@@ -400,6 +400,22 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
     setTimeout(() => setSaveBanner(null), 3000);
   };
 
+  const handleSaveJournalEntry = () => {
+    onSaveEntry({
+      ...entry,
+      title,
+      content,
+      category,
+      tags,
+      marginNotes,
+      wordCount: words,
+      readingTimeMinutes: readTime,
+      updatedAt: new Date().toISOString(),
+    });
+    setSaveBanner('Journal entry saved.');
+    setTimeout(() => setSaveBanner(null), 2500);
+  };
+
   const handleCopyReflection = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(true);
@@ -729,6 +745,17 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
                     className="block min-h-[12rem] w-full resize-none overflow-hidden bg-transparent font-sans text-base sm:text-lg leading-[1.65] text-[#1b1c1a] caret-[#31543b] placeholder:text-[#78927e] focus:outline-none selection:bg-[#cfe8d5]"
                     placeholder="Continue your reflection..."
                   />
+                  <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#dcefe0] pt-3">
+                    <span className="text-[11px] text-[#4a6550]">Write normally; Gemini commands are optional.</span>
+                    <button
+                      onClick={handleSaveJournalEntry}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#4a9b5f] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#3d824f] cursor-pointer"
+                      type="button"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      Save entry
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <textarea
