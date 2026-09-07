@@ -545,27 +545,6 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
           {/* Textarea */}
           <div className="relative mb-6">
             <div className="relative">
-              {/* Overlay div drives height and renders pink labels */}
-              <div
-                aria-hidden="true"
-                className="w-full font-serif text-xl sm:text-2xl leading-[1.8] text-[#1b1c1a] whitespace-pre-wrap break-words pointer-events-none"
-                style={{
-                  backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent calc(1.8em - 1px), rgba(241, 199, 217, 0.55) 1.8em)',
-                  minHeight: '25.2em',
-                }}
-              >
-                {content
-                  ? content.split(/(\[Gemini [^\]]+\])/g).map((part, i) =>
-                      /^\[Gemini [^\]]+\]$/.test(part)
-                        ? <span key={i} className="bg-[#f9b2d7] text-[#784160] rounded-md px-1.5 py-0.5 font-semibold text-sm">{part}</span>
-                        : <span key={i}>{part}</span>
-                    )
-                  : <span className="text-[#b45f82]">Write freely. Type / to trigger commands...</span>
-                }
-                {'
-'}
-              </div>
-              {/* Transparent textarea on top — same font metrics, caret visible */}
               <textarea
                 ref={contentRef}
                 value={content}
@@ -575,11 +554,24 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
                   e.target.style.height = `${e.target.scrollHeight}px`;
                 }}
                 onKeyDown={handleEditorKeyDown}
-                placeholder=""
-                className="absolute inset-0 w-full h-full resize-none bg-transparent font-serif text-xl sm:text-2xl leading-[1.8] text-transparent caret-[#1b1c1a] focus:outline-none selection:bg-[#f9b2d7]/40 overflow-hidden"
-                style={{ minHeight: '25.2em' }}
+                placeholder="Write freely. Type / to trigger commands..."
+                className="w-full resize-none bg-transparent font-serif text-xl sm:text-2xl leading-[1.8] text-[#1b1c1a] placeholder:text-[#b45f82] focus:outline-none selection:bg-[#f9b2d7]/40"
+                style={{
+                  minHeight: '25.2em',
+                  backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent calc(1.8em - 1px), rgba(241, 199, 217, 0.55) 1.8em)',
+                }}
               />
             </div>
+            {/* Styled read-only preview — shows pink [Gemini /cmd] labels */}
+            {/\[Gemini [^\]]+\]/.test(content) && (
+              <div className="mt-4 pt-4 border-t border-[#efeeeb] font-serif text-xl sm:text-2xl leading-[1.8] text-[#1b1c1a] whitespace-pre-wrap break-words pointer-events-none select-none">
+                {content.split(/(\[Gemini [^\]]+\])/g).map((part, i) =>
+                  /^\[Gemini [^\]]+\]$/.test(part)
+                    ? <span key={i} className="inline-block bg-[#f9b2d7] text-[#784160] rounded-md px-2 py-0.5 font-semibold text-sm align-middle mx-0.5">{part}</span>
+                    : <span key={i}>{part}</span>
+                )}
+              </div>
+            )}
 
             {/* Trigger bar */}
             <div className="flex items-center justify-between pt-3 border-t border-[#efeeeb] text-xs">
