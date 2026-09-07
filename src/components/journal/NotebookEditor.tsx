@@ -114,6 +114,15 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const visibleCommandsRef = useRef<typeof slashCommands>([]);
 
+  const focusEditorAtEnd = (value: string) => {
+    requestAnimationFrame(() => {
+      const editor = contentRef.current;
+      if (!editor) return;
+      editor.focus();
+      editor.setSelectionRange(value.length, value.length);
+    });
+  };
+
   useEffect(() => {
     setTitle(entry.title);
     setContent(entry.content);
@@ -330,7 +339,10 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
         timestamp: new Date().toISOString(),
         suggestion: result.suggestion,
       };
-      setContent((c) => `${c.trimEnd()}\n\n[Gemini ${cmd}]\n${result.response}`.trimStart());
+      const nextContent = `${contentOverride ?? content}`.trimEnd() + `\n\n[Gemini ${cmd}]\n${result.response}`;
+      const normalizedContent = nextContent.trimStart();
+      setContent(normalizedContent);
+      focusEditorAtEnd(normalizedContent);
       setTags((currentTags) => currentTags.includes(cmd) ? currentTags : [...currentTags, cmd]);
       setActiveInteraction(newInteraction);
       await saveCompanionInteraction(user.uid, newInteraction);
