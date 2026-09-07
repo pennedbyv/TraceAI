@@ -423,7 +423,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Main Paper Leaf */}
-        <article className={`bg-white rounded-[22px] shadow-[0_18px_38px_rgba(43,33,36,0.08)] border border-[#eeeae7] p-10 sm:p-16 relative transition-all ${activeInteraction && !isFocusMode ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
+        <article className={`bg-[#fffafd] rounded-[22px] shadow-[0_18px_38px_rgba(43,33,36,0.08)] border border-[#f2dce5] p-10 sm:p-16 relative transition-all ${activeInteraction && !isFocusMode ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
           <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#d4c2c9]/40 rounded-tr-2xl pointer-events-none" />
 
           {/* Metadata Strip */}
@@ -523,7 +523,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Title of your reflection..."
-            className="w-full font-serif text-4xl sm:text-6xl text-[#1b1c1a] font-normal tracking-tight placeholder:text-[#b45f82] focus:outline-none mb-8 leading-[1.05]"
+            className="w-full border-b border-[#f1c7d9]/80 pb-3 font-serif text-4xl sm:text-6xl text-[#1b1c1a] font-normal tracking-tight placeholder:text-[#b45f82] focus:outline-none mb-8 leading-[1.05]"
           />
 
           {/* Textarea */}
@@ -535,7 +535,10 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
               onChange={(e) => handleContentChange(e.target.value)}
               onKeyDown={handleEditorKeyDown}
               placeholder="Write freely. Type / to trigger commands..."
-              className="w-full font-serif text-xl sm:text-2xl text-[#1b1c1a] leading-[1.8] bg-transparent resize-y focus:outline-none placeholder:text-[#b45f82] selection:bg-[#f9b2d7]/30"
+              className="w-full resize-y bg-transparent font-serif text-xl leading-[1.8] text-[#1b1c1a] placeholder:text-[#b45f82] focus:outline-none selection:bg-[#f9b2d7]/30 sm:text-2xl"
+              style={{
+                backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent calc(1.8em - 1px), rgba(241, 199, 217, 0.55) 1.8em)',
+              }}
             />
 
             {/* Trigger bar */}
