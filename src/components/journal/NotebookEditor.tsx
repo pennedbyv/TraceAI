@@ -696,8 +696,9 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
                     <span className={`mb-2 inline-flex rounded-md px-2 py-0.5 text-xs font-semibold ${
                       block.kind === 'companion'
                         ? 'bg-[#f9b2d7] text-[#784160]'
-                        : 'bg-[#cfe8d5] text-[#31543b]'
+                        : 'bg-[#bfe8c9] text-[#245532] ring-1 ring-[#78b889]'
                     }`}>
+                      {block.kind === 'entry' && <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[#4a9b5f]" aria-hidden="true" />}
                       {block.label}
                     </span>
                     <div className="whitespace-pre-wrap">{block.text}</div>
@@ -705,7 +706,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
                 ))}
                 {!editableSection && !content && (
                   <div className="rounded-xl border border-dashed border-[#e7a6c3] bg-[#fff2f8] px-4 py-3">
-                    <span className="mb-2 inline-flex rounded-md bg-[#cfe8d5] px-2 py-0.5 text-xs font-semibold text-[#31543b]">
+                    <span className="mb-2 inline-flex rounded-md bg-[#bfe8c9] px-2 py-0.5 text-xs font-semibold text-[#245532] ring-1 ring-[#78b889]">
                       Journal entry
                     </span>
                     <div className="text-[#b45f82]">Start writing your reflection...</div>
@@ -714,7 +715,9 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
               </div>
               {editableSection ? (
                 <div className="relative z-10 mt-3 rounded-xl border border-[#cfe8d5] bg-[#fbfffc] px-4 py-3">
-                  <span className="mb-2 inline-flex rounded-md bg-[#cfe8d5] px-2 py-0.5 text-xs font-semibold text-[#31543b]">
+                  <span className="mb-2 inline-flex rounded-md bg-[#bfe8c9] px-2 py-0.5 text-xs font-semibold text-[#245532] ring-1 ring-[#78b889]">
+                    <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[#4a9b5f]" aria-hidden="true" />
+                    <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[#4a9b5f]" aria-hidden="true" />
                     Journal entry
                   </span>
                   <textarea
