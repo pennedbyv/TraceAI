@@ -25,7 +25,7 @@ export const Header: React.FC<HeaderProps> = ({
       : lastSavedText;
 
   return (
-    <header className="sticky top-0 bg-[#f8f7f4]/92 backdrop-blur-md px-12 py-5 flex items-center justify-between z-40 border-b border-[#e3dedb] select-none max-xl:px-6 max-md:px-4">
+    <header className="sticky top-0 bg-[#f8f7f4]/92 backdrop-blur-md px-12 py-5 flex items-center justify-end z-40 border-b border-[#e3dedb] select-none max-xl:px-6 max-md:px-4">
       <div className="flex items-center gap-4">
         {/* Sync Status Badge */}
         <div className="hidden min-w-0 items-center gap-2 text-xs text-[#504349] sm:flex">

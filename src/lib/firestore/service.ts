@@ -143,7 +143,7 @@ export function subscribeToUserEntries(
     }
   }, (error) => {
     console.error('Realtime Database journal subscription failed:', error);
-    onError(new Error(`Realtime Database error (${error.code}). Check the database URL and rules.`));
+    onError(new Error(`Realtime Database error: ${error.message}. Check the database URL and rules.`));
   });
 }
 
