@@ -36,7 +36,7 @@ type JournalBlock = {
 };
 
 const getJournalBlocks = (value: string): JournalBlock[] => {
-  const parts = value.split(/(\[Gemini [^\]]+\])/g);
+  const parts = value.split(/(\[Gemini [^\]]+\]|\[Journal entry\])/g);
   const blocks: JournalBlock[] = [];
   let currentLabel = 'Journal entry';
   let currentKind: JournalBlock['kind'] = 'entry';
@@ -46,6 +46,12 @@ const getJournalBlocks = (value: string): JournalBlock[] => {
     if (marker) {
       currentLabel = `Gemini ${marker[1]}`;
       currentKind = 'companion';
+      return;
+    }
+
+    if (part === '[Journal entry]') {
+      currentLabel = 'Journal entry';
+      currentKind = 'entry';
       return;
     }
 
@@ -74,7 +80,7 @@ const hasCompanionEdit = (previous: string, next: string): boolean => {
     nextEnd -= 1;
   }
 
-  const companionRanges = [...previous.matchAll(/\[Gemini [^\]]+\][\s\S]*?(?=\[Gemini [^\]]+\]|$)/g)];
+  const companionRanges = [...previous.matchAll(/\[Gemini [^\]]+\][\s\S]*?(?=\[Gemini [^\]]+\]|\[Journal entry\]|$)/g)];
   return companionRanges.some((match) => {
     const start = match.index ?? 0;
     const end = start + match[0].length;
@@ -339,7 +345,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
         timestamp: new Date().toISOString(),
         suggestion: result.suggestion,
       };
-      const nextContent = `${contentOverride ?? content}`.trimEnd() + `\n\n[Gemini ${cmd}]\n${result.response}`;
+      const nextContent = `${contentOverride ?? content}`.trimEnd() + `\n\n[Gemini ${cmd}]\n${result.response}\n\n[Journal entry]\n`;
       const normalizedContent = nextContent.trimStart();
       setContent(normalizedContent);
       focusEditorAtEnd(normalizedContent);
