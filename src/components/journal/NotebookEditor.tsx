@@ -187,12 +187,12 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
     }
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      setSlashSelectedIndex((i) => (i + 1) % visibleCommands.length);
+      setSlashSelectedIndex((i: number) => (i + 1) % visibleCommands.length);
       return;
     }
     if (event.key === 'ArrowUp') {
       event.preventDefault();
-      setSlashSelectedIndex((i) => (i - 1 + visibleCommands.length) % visibleCommands.length);
+      setSlashSelectedIndex((i: number) => (i - 1 + visibleCommands.length) % visibleCommands.length);
       return;
     }
     if (event.key === 'Enter' && !companionLoading) {
@@ -469,7 +469,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
             <div className="flex items-center gap-2.5">
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value as 'work' | 'personal')}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCategory(e.target.value as 'work' | 'personal')}
                 className="text-xs bg-[#f5f3f0] text-[#1b1c1a] px-3 py-1.5 rounded-lg border border-[#d4c2c9]/40 focus:outline-none cursor-pointer font-medium"
               >
                 <option value="work">Work / Strategy</option>
@@ -500,7 +500,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
             </div>
             <div className="relative">
               <button
-                onClick={() => setShowPinPicker((v) => !v)}
+                onClick={() => setShowPinPicker((v: boolean) => !v)}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#f5f3f0] hover:bg-[#efeeeb] border border-[#d4c2c9]/40 text-[#504349] hover:text-[#854c6c] text-[11px] font-medium transition-colors cursor-pointer"
                 type="button"
               >
@@ -535,7 +535,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
           <input
             type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
             placeholder="Title of your reflection..."
             className="w-full border-b border-[#f1c7d9]/80 pb-3 font-serif text-4xl sm:text-6xl text-[#1b1c1a] font-normal tracking-tight placeholder:text-[#b45f82] focus:outline-none mb-8 leading-[1.05]"
           />
@@ -546,7 +546,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
               ref={contentRef}
               rows={14}
               value={content}
-              onChange={(e) => handleContentChange(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleContentChange(e.target.value)}
               onKeyDown={handleEditorKeyDown}
               placeholder="Write freely. Type / to trigger commands..."
               className="w-full resize-y bg-transparent font-serif text-xl leading-[1.8] text-[#1b1c1a] placeholder:text-[#b45f82] focus:outline-none selection:bg-[#f9b2d7]/30 sm:text-2xl"
@@ -588,7 +588,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
                 <input
                   type="text"
                   value={customPromptInput}
-                  onChange={(e) => setCustomPromptInput(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomPromptInput(e.target.value)}
                   placeholder="e.g. How does this connect with my ideas on spatial simplicity?"
                   className="flex-1 px-3 py-2 text-xs rounded-lg bg-white border border-[#d4c2c9] focus:outline-none focus:ring-1 focus:ring-[#854c6c]"
                   onKeyDown={(e) => { if (e.key === 'Enter' && customPromptInput.trim()) handleInvokeCompanion('/ask', customPromptInput); }}
@@ -616,11 +616,11 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
           {marginNotes.length > 0 && (
             <div className="my-6 p-4 rounded-xl bg-[#f5f3f0]/80 border-l-3 border-[#854c6c] space-y-2">
               <span className="text-[10px] font-semibold text-[#854c6c] uppercase tracking-wider block">Margin Notes & Synapses</span>
-              {marginNotes.map((note, idx) => (
+              {marginNotes.map((note: string, idx: number) => (
                 <div key={idx} className="text-xs text-[#504349] font-serif italic flex items-start justify-between gap-3">
                   <span>• {note}</span>
                   <button
-                    onClick={() => setMarginNotes(marginNotes.filter((_, i) => i !== idx))}
+                    onClick={() => setMarginNotes(marginNotes.filter((_: string, i: number) => i !== idx))}
                     className="text-[#827379] hover:text-[#ba1a1a] p-0.5 cursor-pointer shrink-0"
                     type="button"
                   >
@@ -633,10 +633,10 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
 
           {/* Tags */}
           <div className="pt-6 border-t border-[#efeeeb] flex flex-wrap items-center gap-2">
-            {tags.map((t, idx) => (
+            {tags.map((t: string, idx: number) => (
               <span key={idx} className="px-2.5 py-1 rounded-full bg-[#efeeeb] text-xs text-[#504349] font-medium flex items-center gap-1.5">
                 #{t}
-                <button onClick={() => setTags(tags.filter((_, i) => i !== idx))} className="hover:text-[#ba1a1a] cursor-pointer" type="button">
+                <button onClick={() => setTags(tags.filter((_: string, i: number) => i !== idx))} className="hover:text-[#ba1a1a] cursor-pointer" type="button">
                   <X className="w-3 h-3" />
                 </button>
               </span>
