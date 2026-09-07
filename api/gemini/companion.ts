@@ -8,7 +8,7 @@ type VercelResponse = {
   json: (body: unknown) => VercelResponse;
 };
 
-const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
 
 function getGeminiKey(): string | undefined {
   return (globalThis as typeof globalThis & {
@@ -35,7 +35,17 @@ async function generateWithFallback(systemInstruction: string, prompt: string) {
           }),
         },
       );
-      if (!response.ok) throw new Error(`Gemini request failed with status ${response.status}.`);
+      if (!response.ok) {
+        const errorBody = (await response.json().catch(() => null)) as {
+          error?: { message?: string };
+        } | null;
+        const detail = errorBody?.error?.message;
+        throw new Error(
+          detail
+            ? `Gemini request failed with status ${response.status}: ${detail}`
+            : `Gemini request failed with status ${response.status}.`,
+        );
+      }
       const data = (await response.json()) as {
         candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
       };
@@ -54,7 +64,10 @@ async function generateWithFallback(systemInstruction: string, prompt: string) {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const body =
+    req.body && typeof req.body === 'object'
+      ? (req.body as Record<string, unknown>)
+      : {};
   const command = String(body.command || '/gem').trim();
   const currentTitle = String(body.currentTitle || 'Untitled Entry').slice(0, 200);
   const currentContent = String(body.currentContent || '').slice(0, 8000);
@@ -95,7 +108,7 @@ Respond directly to the command:
       ok: false,
       error: msg.includes('not configured')
         ? 'GEMINI_API_KEY is not configured. Add it to Vercel environment variables.'
-        : 'Gemini rejected the request.',
+        : `Gemini request failed: ${msg}`,
     });
   }
 }

@@ -26,8 +26,8 @@ app.get('/api/health', (_req: Request, res: Response) => {
 
 // Resilient Gemini Model Fallback Ladder
 const GEMINI_MODELS = [
-  'gemini-flash-latest',
-  'gemini-3.7-flash',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
 ];
 
 // Lazy initialization of GoogleGenAI
@@ -128,7 +128,7 @@ Respond directly to the command:
       ok: false,
       error: msg.includes('not configured')
         ? 'GEMINI_API_KEY is not configured. Add it to TraceAI/.env or the workspace .env and restart the server.'
-        : 'Gemini rejected the request.',
+        : `Gemini request failed: ${msg}`,
     });
   }
 });
