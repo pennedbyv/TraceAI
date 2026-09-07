@@ -55,6 +55,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
   const [interimText, setInterimText] = useState('');
 
   const contentRef = useRef<HTMLTextAreaElement>(null);
+  const visibleCommandsRef = useRef<typeof slashCommands>([]);
 
   useEffect(() => {
     setTitle(entry.title);
@@ -187,18 +188,18 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
     }
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      setSlashSelectedIndex((i: number) => (i + 1) % visibleCommands.length);
+      setSlashSelectedIndex((i: number) => (i + 1) % visibleCommandsRef.current.length);
       return;
     }
     if (event.key === 'ArrowUp') {
       event.preventDefault();
-      setSlashSelectedIndex((i: number) => (i - 1 + visibleCommands.length) % visibleCommands.length);
+      setSlashSelectedIndex((i: number) => (i - 1 + visibleCommandsRef.current.length) % visibleCommandsRef.current.length);
       return;
     }
     if (event.key === 'Enter' && !companionLoading) {
-      if (visibleCommands.length === 0) return;
+      if (visibleCommandsRef.current.length === 0) return;
       event.preventDefault();
-      const selectedCommand = visibleCommands[slashSelectedIndex].command;
+      const selectedCommand = visibleCommandsRef.current[slashSelectedIndex].command;
       const cleaned = content.replace(/(?:^|\s)\/[^\s]*$/, '').trimEnd();
       setContent(cleaned);
       setSlashQuery('');
@@ -374,6 +375,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
   const visibleCommands = slashCommands.filter(
     ({ aliases }) => !slashQuery || aliases.some((a) => a.startsWith(slashQuery))
   );
+  visibleCommandsRef.current = visibleCommands;
 
   return (
     <div className={`relative max-w-[1320px] mx-auto py-10 px-8 sm:px-12 transition-all duration-200 ${isFocusMode ? 'max-w-4xl' : ''}`}>
