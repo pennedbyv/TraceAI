@@ -533,7 +533,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
                 {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
               </span>
               <span className="font-mono text-[11px]">
-                {new Date(entry.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                {new Date(entry.updatedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
               </span>
               <span>•</span>
               <span className="font-mono text-[11px]">{words} words</span>
