@@ -374,7 +374,13 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
         timestamp: new Date().toISOString(),
         suggestion: result.suggestion,
       };
-      const nextContent = `${contentOverride ?? content}`.trimEnd() + `\n\n[Gemini ${cmd}]\n${result.response}\n\n${JOURNAL_ENTRY_MARKER}\n`;
+      const sourceContent = contentOverride ?? content;
+      const currentSection = getEditableJournalSection(sourceContent);
+      const committedJournal = currentSection?.editableContent.trim();
+      const responseBase = currentSection
+        ? `${currentSection.lockedContent}${committedJournal ? `\n\n${committedJournal}` : ''}`
+        : sourceContent.trimEnd();
+      const nextContent = `${responseBase.trimEnd()}\n\n[Gemini ${cmd}]\n${result.response}\n\n${JOURNAL_ENTRY_MARKER}\n`;
       const normalizedContent = nextContent.trimStart();
       setContent(normalizedContent);
       focusEditorAtEnd(normalizedContent);
