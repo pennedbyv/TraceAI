@@ -38,7 +38,7 @@ type JournalBlock = {
 const JOURNAL_ENTRY_MARKER = '[Journal entry]';
 
 const getJournalBlocks = (value: string): JournalBlock[] => {
-  const parts = value.split(/(\[Gemini [^\]]+\]|\[Journal entry\])/g);
+  const parts = value.split(/(\[Gemini [^\]]+\]|\[Journal entry\])/gi);
   const blocks: JournalBlock[] = [];
   let currentLabel = 'Journal entry';
   let currentKind: JournalBlock['kind'] = 'entry';
@@ -51,7 +51,7 @@ const getJournalBlocks = (value: string): JournalBlock[] => {
       return;
     }
 
-    if (part === JOURNAL_ENTRY_MARKER) {
+    if (part.toLowerCase() === JOURNAL_ENTRY_MARKER.toLowerCase()) {
       currentLabel = 'Journal entry';
       currentKind = 'entry';
       return;
@@ -68,12 +68,19 @@ const getJournalBlocks = (value: string): JournalBlock[] => {
 };
 
 const getEditableJournalSection = (value: string) => {
-  const markerIndex = value.lastIndexOf(JOURNAL_ENTRY_MARKER);
+  const markerPattern = /\[Journal entry\]/gi;
+  let markerIndex = -1;
+  let markerLength = JOURNAL_ENTRY_MARKER.length;
+  let markerMatch: RegExpExecArray | null;
+  while ((markerMatch = markerPattern.exec(value)) !== null) {
+    markerIndex = markerMatch.index;
+    markerLength = markerMatch[0].length;
+  }
   if (markerIndex < 0) return null;
 
   return {
     lockedContent: value.slice(0, markerIndex),
-    editableContent: value.slice(markerIndex + JOURNAL_ENTRY_MARKER.length).replace(/^\n/, ''),
+    editableContent: value.slice(markerIndex + markerLength).replace(/^\n/, ''),
   };
 };
 
@@ -92,7 +99,7 @@ const hasCompanionEdit = (previous: string, next: string): boolean => {
     nextEnd -= 1;
   }
 
-  const companionRanges = [...previous.matchAll(/\[Gemini [^\]]+\][\s\S]*?(?=\[Gemini [^\]]+\]|\[Journal entry\]|$)/g)];
+  const companionRanges = [...previous.matchAll(/\[Gemini [^\]]+\][\s\S]*?(?=\[Gemini [^\]]+\]|\[Journal entry\]|$)/gi)];
   return companionRanges.some((match) => {
     const start = match.index ?? 0;
     const end = start + match[0].length;
@@ -747,7 +754,6 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
               {editableSection ? (
                 <div className="relative z-10 mt-3 rounded-xl border border-[#cfe8d5] bg-[#fbfffc] px-4 py-3">
                   <span className="mb-2 inline-flex rounded-md bg-[#bfe8c9] px-2 py-0.5 text-xs font-semibold text-[#245532] ring-1 ring-[#78b889]">
-                    <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[#4a9b5f]" aria-hidden="true" />
                     <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[#4a9b5f]" aria-hidden="true" />
                     Journal entry
                   </span>
