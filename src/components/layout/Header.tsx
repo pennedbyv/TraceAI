@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Share2, Loader2, AlertCircle, Bell } from 'lucide-react';
+import { Search, Share2, Loader2, AlertCircle, Bell, Cloud } from 'lucide-react';
 
 interface HeaderProps {
   searchQuery: string;
@@ -26,9 +26,12 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 bg-[#f8f7f4]/92 backdrop-blur-md px-12 py-5 flex items-center justify-between z-40 border-b border-[#e3dedb] select-none max-xl:px-6 max-md:px-4">
-      <div className="flex min-w-0 items-center gap-4">
+      <div className="flex items-center gap-4">
         {/* Sync Status Badge */}
         <div className="hidden min-w-0 items-center gap-2 text-xs text-[#504349] sm:flex">
+          <Cloud className={`h-3.5 w-3.5 shrink-0 ${
+            syncStatus === 'synced' ? 'text-[#4a6550]' : syncStatus === 'error' ? 'text-[#ba1a1a]' : 'text-[#854c6c]'
+          }`} aria-hidden="true" />
           {syncStatus === 'saving' ? (
             <Loader2 className="w-3.5 h-3.5 text-[#854c6c] animate-spin" />
           ) : syncStatus === 'error' ? (
@@ -36,13 +39,13 @@ export const Header: React.FC<HeaderProps> = ({
           ) : (
             <span className="w-2 h-2 rounded-full bg-[#4a6550]" />
           )}
-          <span className="truncate whitespace-nowrap text-sm text-[#504349]">
+          <span className={`truncate whitespace-nowrap text-sm ${
+            syncStatus === 'synced' ? 'text-[#4a6550]' : syncStatus === 'error' ? 'text-[#ba1a1a]' : 'text-[#854c6c]'
+          }`}>
             {syncLabel}
           </span>
         </div>
-      </div>
 
-      <div className="flex items-center gap-4">
         {/* Search Bar */}
         <div className="relative min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#827379]" />

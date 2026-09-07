@@ -6,6 +6,7 @@ import {
   saveJournalEntry,
   deleteJournalEntry,
 } from './lib/firestore/service';
+import { Flower2, Palette, PenLine, Sparkles } from 'lucide-react';
 import { LandingPage } from './components/auth/LandingPage';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
@@ -16,6 +17,17 @@ import { MemoriesView } from './components/views/MemoriesView';
 import { PlacesView } from './components/views/PlacesView';
 import { SettingsView } from './components/views/SettingsView';
 import { FirstEntrySetup } from './components/journal/FirstEntrySetup';
+
+const artistFacts = [
+  { artist: 'Amrita Sher-Gil', fact: 'She brought European modernism and Indian visual life into one vivid, unmistakable language.', icon: Palette },
+  { artist: 'Raja Ravi Varma', fact: 'He made mythological scenes feel close to home through oil painting and widely circulated prints.', icon: PenLine },
+  { artist: 'Jamini Roy', fact: 'He turned to Bengali folk traditions to create art that felt direct, graphic, and deeply local.', icon: Flower2 },
+  { artist: 'S. H. Raza', fact: 'His famous bindu became a quiet center of gravity for paintings about energy, nature, and existence.', icon: Sparkles },
+  { artist: 'M. F. Husain', fact: 'He found movement in simplified forms, bringing cinema, mythology, and everyday India onto large canvases.', icon: PenLine },
+  { artist: 'Nalini Malani', fact: 'Her layered installations explore memory, violence, and the many stories carried by a single image.', icon: Palette },
+];
+
+const minimumAuthLoadingMs = 3000;
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -31,14 +43,34 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [returnSection, setReturnSection] = useState<ActiveNavSection | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [artistFactIndex, setArtistFactIndex] = useState(0);
+  const authLoadingStartedAt = useRef(Date.now());
+  const authLoadingTimer = useRef<number | null>(null);
 
   // Listen to Authentication lifecycle
   useEffect(() => {
     const unsubscribe = subscribeToAuthChanges((user) => {
       setCurrentUser(user);
-      setAuthLoading(false);
+      const elapsed = Date.now() - authLoadingStartedAt.current;
+      const remaining = Math.max(0, minimumAuthLoadingMs - elapsed);
+      if (authLoadingTimer.current !== null) {
+        window.clearTimeout(authLoadingTimer.current);
+      }
+      if (remaining === 0) {
+        setAuthLoading(false);
+      } else {
+        authLoadingTimer.current = window.setTimeout(() => {
+          setAuthLoading(false);
+          authLoadingTimer.current = null;
+        }, remaining);
+      }
     });
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (authLoadingTimer.current !== null) {
+        window.clearTimeout(authLoadingTimer.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -52,6 +84,13 @@ export default function App() {
 
     window.addEventListener('keydown', handleSearchShortcut);
     return () => window.removeEventListener('keydown', handleSearchShortcut);
+  }, []);
+
+  useEffect(() => {
+    const factTimer = window.setInterval(() => {
+      setArtistFactIndex((index) => (index + 1) % artistFacts.length);
+    }, 4500);
+    return () => window.clearInterval(factTimer);
   }, []);
 
   // When user is authenticated, load their isolated Realtime Database entries
@@ -86,7 +125,7 @@ export default function App() {
     const newEntry: JournalEntry = {
       id: 'entry_' + Date.now(),
       userId: currentUser.uid,
-      title: '',
+      title: 'Untitled Reflection',
       content: '',
       category: opts.category,
       tags: [],
@@ -136,7 +175,7 @@ export default function App() {
     const newEntry: JournalEntry = {
       id: 'entry_' + Date.now(),
       userId: currentUser.uid,
-      title: '',
+      title: 'Untitled Reflection',
       content: '',
       category: selectedCategory === 'personal' ? 'personal' : 'work',
       tags: [],
@@ -219,14 +258,37 @@ export default function App() {
 
   // 1. Authentication Loading State
   if (authLoading) {
+    const currentFact = artistFacts[artistFactIndex];
+    const FactIcon = currentFact.icon;
+
     return (
-      <div className="min-h-screen bg-[#fbf9f6] flex flex-col items-center justify-center gap-4 text-[#1b1c1a]">
-        <div className="w-10 h-10 rounded-xl bg-[#f9b2d7] text-[#784160] flex items-center justify-center font-serif text-xl font-bold shadow-sm animate-pulse">
-          T
+      <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#fbf9f6] px-6 text-[#1b1c1a]">
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#f9b2d7]/15 blur-3xl" />
+
+        <div className="relative flex flex-col items-center text-center">
+          <div className="relative mb-7 flex h-20 w-20 items-center justify-center rounded-[26px] bg-[#f9b2d7] text-[#784160] shadow-[0_12px_30px_rgba(133,76,108,0.18)] animate-pulse">
+            <div className="absolute inset-2 rounded-[19px] border border-white/60" />
+            <FactIcon className="h-8 w-8" strokeWidth={1.5} />
+            <span className="absolute -right-2 -top-2 h-4 w-4 rounded-full border-2 border-[#fbf9f6] bg-[#4a6550] animate-bounce" />
+          </div>
+
+          <p className="font-serif text-lg italic text-[#504349]">Opening a little room for thought...</p>
+          <div className="mt-2 h-1 w-36 overflow-hidden rounded-full bg-[#efeeeb]">
+            <div className="h-full w-1/2 rounded-full bg-[#854c6c] animate-[loading-sweep_1.8s_ease-in-out_infinite]" />
+          </div>
+
+          <div className="mt-12 max-w-md border-t border-[#d4c2c9]/50 pt-5">
+            <div className="mb-2 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#854c6c]">
+              <Sparkles className="h-3 w-3" />
+              A small art fact
+              <Sparkles className="h-3 w-3" />
+            </div>
+            <p key={currentFact.artist} className="font-serif text-xl text-[#1b1c1a] animate-[fact-reveal_450ms_ease-out]">
+              {currentFact.fact}
+            </p>
+            <p className="mt-3 text-xs font-semibold text-[#4a6550]">{currentFact.artist}</p>
+          </div>
         </div>
-        <p className="font-serif italic text-sm text-[#504349]">
-          Entering quiet contemplative space...
-        </p>
       </div>
     );
   }
@@ -254,10 +316,15 @@ export default function App() {
         streakCount={streakCount}
         collapsed={sidebarCollapsed}
         onToggleSidebar={() => setSidebarCollapsed((collapsed) => !collapsed)}
+        onSelectCategory={(category) => {
+          setSelectedCategory(category);
+          setActiveSection('search');
+          setReturnSection(null);
+        }}
       />
 
       {/* Main Sanctuary Canvas */}
-      <main className={`flex min-h-screen flex-1 flex-col transition-[margin] duration-200 max-md:ml-0 ${sidebarCollapsed ? 'ml-20' : 'ml-80 max-xl:ml-72'}`}>
+      <main className={`flex min-h-screen flex-1 flex-col transition-[margin] duration-200 max-md:ml-0 ${sidebarCollapsed ? 'ml-20' : 'ml-72 max-xl:ml-64'}`}>
         <Header
           searchQuery={searchQuery}
           onSearchChange={(query) => {
