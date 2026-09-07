@@ -439,7 +439,7 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Main Paper Leaf */}
-        <article className={`bg-[#fffafd] rounded-[22px] shadow-[0_18px_38px_rgba(43,33,36,0.08)] border border-[#f2dce5] p-10 sm:p-16 relative transition-all ${activeInteraction && !isFocusMode ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
+        <article className={`bg-[#fffafd] rounded-[22px] shadow-[0_18px_38px_rgba(43,33,36,0.08)] border border-[#f2dce5] p-6 sm:p-10 relative transition-all ${activeInteraction && !isFocusMode ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
           <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#d4c2c9]/40 rounded-tr-2xl pointer-events-none" />
 
           {/* Metadata Strip */}
@@ -539,37 +539,32 @@ export const NotebookEditor: React.FC<NotebookEditorProps> = ({ entry, user, onS
             value={title}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
             placeholder="Title of your reflection..."
-            className="w-full border-b border-[#f1c7d9]/80 pb-3 font-serif text-4xl sm:text-6xl text-[#1b1c1a] font-normal tracking-tight placeholder:text-[#b45f82] focus:outline-none mb-8 leading-[1.05]"
+            className="w-full border-b border-[#f1c7d9]/80 pb-2 font-serif text-3xl sm:text-4xl text-[#1b1c1a] font-normal tracking-tight placeholder:text-[#b45f82] focus:outline-none mb-5 leading-[1.05]"
           />
 
           {/* Editor */}
           <div className="relative mb-6">
-            <div className="relative">
-              {/* Styled display layer — drives height, shows pink labels */}
-              <div
-                aria-hidden="true"
-                className="w-full font-serif text-xl sm:text-2xl leading-[1.8] text-[#1b1c1a] whitespace-pre-wrap break-words min-h-[14em] pb-1"
-                style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent calc(1.8em - 1px), rgba(241, 199, 217, 0.55) 1.8em)' }}
-              >
-                {content
-                  ? content.split(/(\[Gemini [^\]]+\])/g).map((part, i) =>
-                      /^\[Gemini [^\]]+\]$/.test(part)
-                        ? <span key={i} className="bg-[#f9b2d7] text-[#784160] rounded-md px-2 py-0.5 font-semibold text-sm">{part}</span>
-                        : <span key={i}>{part}</span>
-                    )
-                  : <span className="text-[#b45f82]">Write freely. Type / to trigger commands...</span>
-                }{' '}
+            <textarea
+              ref={contentRef}
+              value={content}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleContentChange(e.target.value)}
+              onKeyDown={handleEditorKeyDown}
+              placeholder="Write freely. Type / to trigger commands..."
+              className="w-full resize-none bg-transparent font-serif text-lg leading-[1.8] text-[#1b1c1a] placeholder:text-[#b45f82] focus:outline-none selection:bg-[#f9b2d7]/40"
+              style={{
+                minHeight: '60vh',
+                backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent calc(1.8em - 1px), rgba(241, 199, 217, 0.55) 1.8em)',
+              }}
+            />
+            {/\[Gemini [^\]]+\]/.test(content) && (
+              <div className="mt-6 pt-4 border-t border-[#f1c7d9] font-serif text-lg leading-[1.8] text-[#1b1c1a] whitespace-pre-wrap break-words select-none pointer-events-none">
+                {content.split(/(\[Gemini [^\]]+\])/g).map((part, i) =>
+                  /^\[Gemini [^\]]+\]$/.test(part)
+                    ? <span key={i} className="bg-[#f9b2d7] text-[#784160] rounded-md px-2 py-0.5 font-semibold text-sm">{part}</span>
+                    : <span key={i}>{part}</span>
+                )}
               </div>
-              {/* Textarea sits on top — transparent text, visible caret */}
-              <textarea
-                ref={contentRef}
-                value={content}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleContentChange(e.target.value)}
-                onKeyDown={handleEditorKeyDown}
-                placeholder="Write freely. Type / to trigger commands..."
-                className="absolute inset-0 w-full h-full resize-none bg-transparent font-serif text-xl sm:text-2xl leading-[1.8] text-transparent caret-[#1b1c1a] placeholder:text-[#b45f82] focus:outline-none selection:bg-[#f9b2d7]/40"
-              />
-            </div>
+            )}
             <div className="flex items-center justify-between pt-3 border-t border-[#efeeeb] text-xs">
               <div className="flex items-center gap-2">
                 <button
