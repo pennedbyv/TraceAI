@@ -342,7 +342,7 @@ export default function App() {
       />
 
       {/* Main Sanctuary Canvas */}
-      <main className={`flex min-h-screen flex-1 flex-col transition-[margin] duration-200 max-md:ml-0 ${sidebarCollapsed ? 'ml-20' : 'ml-72 max-xl:ml-64'}`}>
+      <main className={`flex min-w-0 min-h-screen flex-1 flex-col transition-[margin] duration-200 max-md:ml-0 ${sidebarCollapsed ? 'ml-20' : 'ml-72 max-xl:ml-64'}`}>
         <Header
           searchQuery={searchQuery}
           onSearchChange={(query) => {
