@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { GoogleCalendarEvent, JournalEntry, UserProfile } from '../../types';
 import { reconnectGoogleCalendar } from '../../lib/firebase/client';
-import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'; 
 
 interface CalendarViewProps {
   entries: JournalEntry[];
